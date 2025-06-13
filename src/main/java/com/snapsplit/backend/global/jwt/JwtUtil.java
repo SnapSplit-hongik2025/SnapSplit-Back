@@ -70,4 +70,15 @@ public class JwtUtil {
             return false;
         }
     }
+
+    //jwt 만료 시간 추출 유틸 함수
+    public Date getExpiration(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getExpiration();
+    }
+
 }

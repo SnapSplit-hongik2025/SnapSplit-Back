@@ -3,6 +3,7 @@ package com.snapsplit.backend.config;
 import com.snapsplit.backend.domain.auth.handler.OAuth2LoginSuccessHandler;
 import com.snapsplit.backend.domain.auth.service.CustomOAuth2UserService;
 import com.snapsplit.backend.domain.auth.service.CustomUserDetailsService;
+import com.snapsplit.backend.domain.auth.service.TokenBlacklistService;
 import com.snapsplit.backend.global.jwt.JwtAuthenticationFilter;
 import com.snapsplit.backend.global.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,8 @@ public class SecurityConfig {
     // JWT에서 사용자 로드할 때 사용하는 서비스
     private final CustomUserDetailsService userDetailsService;
 
+    private final TokenBlacklistService tokenBlacklistService;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
@@ -46,7 +49,7 @@ public class SecurityConfig {
                         .userInfoEndpoint(user -> user.userService(customOAuth2UserService)) // 카카오에서 받아온 사용자 정보 가공
                 )
                 // JWT로 인증되면, 그 이후 기본 로그인 필터는 굳이 건들 필요 없다는 의미..
-                .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService, tokenBlacklistService), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }
