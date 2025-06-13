@@ -6,6 +6,7 @@ import com.snapsplit.backend.domain.user.repository.UserRepository;
 import com.snapsplit.backend.global.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,7 +22,13 @@ public class AuthController {
     private final UserRepository userRepository;
 
     @PostMapping("/logout")
+    @Transactional
     public ResponseEntity<String> logout(@RequestHeader("Authorization") String accessToken) {
+        // "Bearer " 접두사 제거
+        if (accessToken.startsWith("Bearer ")) {
+            accessToken = accessToken.substring(7);
+        }
+
         String kakaoId = jwtUtil.getKakaoIdFromToken(accessToken); // 토큰에서 사용자 정보 추출
         User user = userRepository.findByKakaoId(kakaoId).orElseThrow();
 
@@ -29,4 +36,5 @@ public class AuthController {
 
         return ResponseEntity.ok("로그아웃 완료!");
     }
+
 }

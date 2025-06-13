@@ -52,6 +52,7 @@ public class JwtUtil {
 
     // token에서 kakaoId 추출
     public String getKakaoIdFromToken(String token) {
+        //System.out.println("TOKEN = [" + token + "]");
         return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
