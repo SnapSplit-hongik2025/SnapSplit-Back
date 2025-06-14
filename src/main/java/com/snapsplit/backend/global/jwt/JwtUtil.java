@@ -32,18 +32,19 @@ public class JwtUtil {
 
     // access token 생성
     public String generateAccessToken(User user) {
-        return createToken(user.getKakaoId(), ACCESS_TOKEN_EXP);
+        return createToken(user.getKakaoId(), ACCESS_TOKEN_EXP, "access");
     }
 
     // refresh token 생성
     public String generateRefreshToken(User user) {
-        return createToken(user.getKakaoId(), REFRESH_TOKEN_EXP);
+        return createToken(user.getKakaoId(), REFRESH_TOKEN_EXP, "refresh");
     }
 
     // jwt 생성
-    private String createToken(String kakaoId, long expireTime) {
+    private String createToken(String kakaoId, long expireTime, String tokenType) {
         return Jwts.builder()
                 .setSubject(kakaoId)
+                .claim("tokenType", tokenType)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expireTime))
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -79,6 +80,16 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody()
                 .getExpiration();
+    }
+
+    // token에서 토큰 타입(access / refresh) 추출 -> 이중 로그아웃 방지
+    public String getTokenType(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("tokenType", String.class);
     }
 
 }

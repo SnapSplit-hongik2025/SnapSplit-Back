@@ -27,21 +27,33 @@ public class AuthController {
 
     @PostMapping("/logout")
     @Transactional
-    public ResponseEntity<String> logout(@RequestHeader("Authorization") String accessToken) {
+    public ResponseEntity<String> logout(@RequestHeader("Authorization") String tokenHeader) {
         // "Bearer " 접두사 제거
-        if (accessToken.startsWith("Bearer ")) {
-            accessToken = accessToken.substring(7);
+        String token = tokenHeader;
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
         }
 
-        String kakaoId = jwtUtil.getKakaoIdFromToken(accessToken); // 토큰에서 사용자 정보 추출
-        User user = userRepository.findByKakaoId(kakaoId).orElseThrow();
+        // 유효성 확인
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.badRequest().body("유효하지 않은 토큰입니다.");
+        }
 
-        refreshTokenRepository.deleteByUser(user); // DB에 저장된 RefreshToken 제거
+        // 토큰 타입 확인 -> refresh로 이중로그아웃 방지
+        String tokenType = jwtUtil.getTokenType(token);
+        if (!"access".equals(tokenType)) {
+            return ResponseEntity.badRequest().body("Access token으로만 로그아웃 가능합니다.");
+        }
+
+        // 토큰에서 사용자 정보 추출 및DB에 저장된 RefreshToken 제거
+        String kakaoId = jwtUtil.getKakaoIdFromToken(token);
+        User user = userRepository.findByKakaoId(kakaoId).orElseThrow();
+        refreshTokenRepository.deleteByUser(user);
 
         // AccessToken 블랙리스트 등록
-        Date expiration = jwtUtil.getExpiration(accessToken);
+        Date expiration = jwtUtil.getExpiration(token);
         long remainingMillis = expiration.getTime() - System.currentTimeMillis();
-        tokenBlacklistService.blacklistToken(accessToken, remainingMillis);
+        tokenBlacklistService.blacklistToken(token, remainingMillis);
 
         return ResponseEntity.ok("로그아웃 완료!");
     }
