@@ -4,9 +4,11 @@ import com.snapsplit.backend.domain.auth.handler.OAuth2LoginSuccessHandler;
 import com.snapsplit.backend.domain.auth.service.CustomOAuth2UserService;
 import com.snapsplit.backend.domain.auth.service.CustomUserDetailsService;
 import com.snapsplit.backend.domain.auth.service.TokenBlacklistService;
+import com.snapsplit.backend.global.auth.CustomAuthenticationEntryPoint;
 import com.snapsplit.backend.global.jwt.JwtAuthenticationFilter;
 import com.snapsplit.backend.global.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -34,13 +36,16 @@ public class SecurityConfig {
 
     private final TokenBlacklistService tokenBlacklistService;
 
+    @Autowired
+    private CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable()) // REST API 기반이라 CSRF 보호 꺼도 됨
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // JWT라서 세션 사용 안 함
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/kakao/**").permitAll() // /auth/kakao 는 인증 없이 접근 가능
+                        .requestMatchers("/auth/kakao/**","/api/auth/refresh").permitAll() // /auth/kakao 는 인증 없이 접근 가능
                         .anyRequest().authenticated() // 나머지 경로는 인증 필요
                 )
                 // Spring Security의 소셜 로그인 처리 영역

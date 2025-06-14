@@ -1,6 +1,7 @@
 package com.snapsplit.backend.global.jwt;
 
 import com.snapsplit.backend.domain.user.entity.User;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -84,12 +85,19 @@ public class JwtUtil {
 
     // token에서 토큰 타입(access / refresh) 추출 -> 이중 로그아웃 방지
     public String getTokenType(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("tokenType", String.class);
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .get("tokenType", String.class);
+        } catch (ExpiredJwtException e) {
+            // 만료된 토큰이라도 내부 claims에는 접근 가능
+            return e.getClaims().get("tokenType", String.class);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("유효하지 않은 토큰 형식입니다.");
+        }
     }
 
 }

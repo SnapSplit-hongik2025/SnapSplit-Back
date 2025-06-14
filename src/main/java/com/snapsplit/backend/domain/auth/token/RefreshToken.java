@@ -29,4 +29,5 @@ public class RefreshToken {
     // refresh token의 만료 시간
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
+
 }

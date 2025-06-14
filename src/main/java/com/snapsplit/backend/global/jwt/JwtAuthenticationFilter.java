@@ -1,6 +1,8 @@
 package com.snapsplit.backend.global.jwt;
 
 import com.snapsplit.backend.domain.auth.service.TokenBlacklistService;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,31 +34,37 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // resolveToken() 으로 순수 JWT만 반환
         String token = resolveToken(request);
 
-        // 블랙리스트에 있는 토큰인지 먼저 확인
-        if (token != null && tokenBlacklistService.isTokenBlacklisted(token)) {
+        try{
+            // 블랙리스트에 있는 토큰인지 먼저 확인
+            if (token != null && tokenBlacklistService.isTokenBlacklisted(token)) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"message\": \"블랙리스트 처리된 토큰입니다.\"}");
+                return;
+            }
+
+            // 토큰이 존재하고, 유효할 경우
+            if (token != null && jwtUtil.validateToken(token)) {
+                // jwt에서 사용자 id 추출
+                String kakaoId = jwtUtil.getKakaoIdFromToken(token);
+                // userdetail 객체로 사용자 정보 변환해서 받기
+                UserDetails userDetails = userDetailsService.loadUserByUsername(kakaoId);
+                // 인증 정보 등록
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+            filterChain.doFilter(request, response);
+
+        } catch (ExpiredJwtException e) { // access token 만료된 경우
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"message\": \"블랙리스트 처리된 토큰입니다.\"}");
-            return;
+            response.getWriter().write("{\"error\": \"토큰이 만료되었습니다.\"}");
+        } catch (JwtException | IllegalArgumentException e) { // 잘못된 형식
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"error\": \"유효하지 않은 토큰입니다.\"}");
         }
-
-        // 토큰이 존재하고, 유효할 경우
-        if (token != null && jwtUtil.validateToken(token)) {
-
-            // jwt에서 사용자 id 추출
-            String kakaoId = jwtUtil.getKakaoIdFromToken(token);
-
-            // userdetail 객체로 사용자 정보 변환해서 받기
-            UserDetails userDetails = userDetailsService.loadUserByUsername(kakaoId);
-
-            // 인증 정보 등록
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        }
-
-        filterChain.doFilter(request, response);
     }
 
     // 순수 jwt 파싱하는 함수
