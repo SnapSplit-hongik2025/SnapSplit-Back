@@ -5,6 +5,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -19,10 +20,8 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    // 모든 요청에 대해 JWT 토큰을 검사하고 인증 객체를 설정하는 필터
-
-    private final JwtUtil jwtUtil; // jwt 검증 및 파싱
-    private final UserDetailsService userDetailsService; // jwt에서 꺼낸 카카오 id 이용해서 사용자 정보 조회
+    private final JwtUtil jwtUtil;
+    private final UserDetailsService userDetailsService;
     private final TokenBlacklistService tokenBlacklistService;
 
     @Override
@@ -30,12 +29,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        // http 요청에서 authorization : Bearer <token> 헤더 꺼냄
-        // resolveToken() 으로 순수 JWT만 반환
-        String token = resolveToken(request);
+        String token = resolveTokenFromCookie(request); // 쿠키에서 토큰 추출
 
-        try{
-            // 블랙리스트에 있는 토큰인지 먼저 확인
+        try {
             if (token != null && tokenBlacklistService.isTokenBlacklisted(token)) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json;charset=UTF-8");
@@ -43,36 +39,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 토큰이 존재하고, 유효할 경우
             if (token != null && jwtUtil.validateToken(token)) {
-                // jwt에서 사용자 id 추출
                 String kakaoId = jwtUtil.getKakaoIdFromToken(token);
-                // userdetail 객체로 사용자 정보 변환해서 받기
                 UserDetails userDetails = userDetailsService.loadUserByUsername(kakaoId);
-                // 인증 정보 등록
+
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
+
             filterChain.doFilter(request, response);
 
-        } catch (ExpiredJwtException e) { // access token 만료된 경우
+        } catch (ExpiredJwtException e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"error\": \"토큰이 만료되었습니다.\"}");
-        } catch (JwtException | IllegalArgumentException e) { // 잘못된 형식
+        } catch (JwtException | IllegalArgumentException e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"error\": \"유효하지 않은 토큰입니다.\"}");
         }
     }
 
-    // 순수 jwt 파싱하는 함수
-    private String resolveToken(HttpServletRequest request) {
+    // 쿠키에서 accessToken 추출
+    private String resolveTokenFromCookie(HttpServletRequest request) {
+        // 1. Authorization 헤더 우선 검사
         String bearer = request.getHeader("Authorization");
         if (bearer != null && bearer.startsWith("Bearer ")) {
             return bearer.substring(7);
         }
+
+        // 2. 쿠키 검사 (accessToken 이름으로 된 쿠키 존재 여부)
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("accessToken".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
         return null;
     }
 }
