@@ -4,6 +4,7 @@ import com.snapsplit.backend.domain.auth.dto.KakaoTokenResponse;
 import com.snapsplit.backend.domain.auth.dto.KakaoUserResponse;
 import com.snapsplit.backend.domain.auth.dto.TokenResponse;
 import com.snapsplit.backend.domain.auth.service.KakaoOAuthService;
+import com.snapsplit.backend.domain.auth.token.RefreshTokenService;
 import com.snapsplit.backend.domain.user.entity.User;
 import com.snapsplit.backend.global.jwt.JwtUtil;
 import com.snapsplit.backend.global.response.ApiResponse;
@@ -18,6 +19,7 @@ public class KakaoAuthController {
 
     private final KakaoOAuthService kakaoOAuthService;
     private final JwtUtil jwtUtil;
+    private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/callback")
     public ResponseEntity<ApiResponse<TokenResponse>> kakaoLogin(@RequestParam String code) {
@@ -33,6 +35,8 @@ public class KakaoAuthController {
         // 자체 access/refresh JWT 발급
         String accessToken = jwtUtil.generateAccessToken(user);
         String refreshToken = jwtUtil.generateRefreshToken(user);
+
+        refreshTokenService.save(user, refreshToken, jwtUtil.getRefreshTokenExpiry());
 
         // access token 및 refresh token dto
         TokenResponse jwtResponse = new TokenResponse(accessToken, refreshToken);

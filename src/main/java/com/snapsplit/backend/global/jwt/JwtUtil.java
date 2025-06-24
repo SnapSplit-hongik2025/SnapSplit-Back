@@ -10,6 +10,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 
 @Component
@@ -71,6 +74,14 @@ public class JwtUtil {
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
+    }
+
+    // 리프레시 토큰 만료 시간
+    public LocalDateTime getRefreshTokenExpiry() {
+        return Instant.now()
+                .plusMillis(REFRESH_TOKEN_EXP)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
     }
 
     //jwt 만료 시간 추출 유틸 함수
