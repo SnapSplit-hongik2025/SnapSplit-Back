@@ -14,14 +14,14 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/auth/kakao")
+@RequestMapping("/auth/kakao")
 public class KakaoAuthController {
 
     private final KakaoOAuthService kakaoOAuthService;
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
 
-    @PostMapping("/callback")
+    @PostMapping("/login")
     public ResponseEntity<ApiResponse<TokenResponse>> kakaoLogin(@RequestParam String code) {
         // 인가 코드로 카카오 access token 받기
         KakaoTokenResponse tokenResponse = kakaoOAuthService.getToken(code);
