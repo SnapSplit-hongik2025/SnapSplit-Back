@@ -34,4 +34,13 @@ public class RefreshToken {
         return LocalDateTime.now().isAfter(this.expiresAt);
     }
 
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public void setExpiresAt(LocalDateTime expiresAt) {
+        this.expiresAt = expiresAt;
+    }
+
+
 }

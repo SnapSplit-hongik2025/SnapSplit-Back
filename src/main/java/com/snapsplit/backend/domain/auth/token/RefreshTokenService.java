@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -15,19 +16,24 @@ public class RefreshTokenService {
 
     @Transactional
     public void save(User user, String token, LocalDateTime expiresAt) {
-        RefreshToken refreshToken = RefreshToken.builder()
-                .user(user)
-                .token(token)
-                .expiresAt(expiresAt)
-                .build();
-        refreshTokenRepository.save(refreshToken);
-    }
+        // 기존 토큰이 있는지 조회
+        Optional<RefreshToken> existingToken = refreshTokenRepository.findByUser(user);
 
-    @Transactional(readOnly = true)
-    public boolean isValid(String token) {
-        return refreshTokenRepository.findByToken(token)
-                .map(rt -> !rt.isExpired())  // 엔티티에 isExpired() 메서드 있다고 가정
-                .orElse(false);
+        if (existingToken.isPresent()) {
+            // 갱신 (update)
+            RefreshToken refreshToken = existingToken.get();
+            refreshToken.setToken(token);
+            refreshToken.setExpiresAt(expiresAt);
+            // 엔티티는 변경 감지(dirty checking)로 자동 저장됨
+        } else {
+            // 새로 저장 (insert)
+            RefreshToken newToken = RefreshToken.builder()
+                    .user(user)
+                    .token(token)
+                    .expiresAt(expiresAt)
+                    .build();
+            refreshTokenRepository.save(newToken);
+        }
     }
 
     @Transactional
