@@ -40,4 +40,17 @@ public class RefreshTokenService {
     public void deleteByUser(User user) {
         refreshTokenRepository.deleteAllByUser(user);
     }
+
+    @Transactional(readOnly = true)
+    public boolean isValid(String token) {
+        return refreshTokenRepository.findByToken(token)
+                .map(rt -> !rt.isExpired())
+                .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<RefreshToken> findByToken(String token) {
+        return refreshTokenRepository.findByToken(token);
+    }
+
 }

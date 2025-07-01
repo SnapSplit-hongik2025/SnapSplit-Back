@@ -24,6 +24,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
+        String path = request.getRequestURI();
+        if (isWhitelisted(path)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String token = resolveToken(request);
 
         try {
@@ -47,6 +53,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
         }
     }
+
+    private boolean isWhitelisted(String path) {
+        return path.equals("/auth/kakao/login") || path.equals("/auth/token/refresh");
+    }
+
     private String resolveToken(HttpServletRequest request) {
         String bearer = request.getHeader("Authorization");
         if (bearer != null && bearer.startsWith("Bearer ")) {
