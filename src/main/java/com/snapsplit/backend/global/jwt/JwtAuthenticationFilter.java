@@ -9,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -17,22 +18,29 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper(); // JSON 변환용
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-
         String path = request.getRequestURI();
+
         if (isWhitelisted(path)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = resolveToken(request);
+        String token = jwtUtil.resolveToken(request);
 
         try {
+            //블랙리스트 토큰인지 확인
+            if (token != null && redisTemplate.hasKey(token)) {
+                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "로그아웃된 토큰입니다.");
+                return;
+            }
+
             if (token != null && jwtUtil.validateToken(token)) {
                 String kakaoId = jwtUtil.getKakaoIdFromToken(token);
                 request.setAttribute("kakaoId", kakaoId);
@@ -55,16 +63,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean isWhitelisted(String path) {
-        return path.equals("/auth/kakao/login") || path.equals("/auth/token/refresh");
+        return path.equals("/auth/kakao/login")
+                || path.equals("/auth/token/refresh")
+                || path.equals("/auth/kakao/logout");
     }
 
-    private String resolveToken(HttpServletRequest request) {
-        String bearer = request.getHeader("Authorization");
-        if (bearer != null && bearer.startsWith("Bearer ")) {
-            return bearer.substring(7);
-        }
-        return null;
-    }
 
     private void sendErrorResponse(HttpServletResponse response, int status, String message) throws IOException {
         ApiResponse<Object> errorResponse = ApiResponse.fail(status, message);

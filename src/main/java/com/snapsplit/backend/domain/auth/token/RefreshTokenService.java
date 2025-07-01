@@ -41,6 +41,19 @@ public class RefreshTokenService {
         refreshTokenRepository.deleteAllByUser(user);
     }
 
+    @Transactional
+    public boolean deleteByToken(String token) {
+
+        Optional<RefreshToken> tokenEntity = refreshTokenRepository.findByToken(token);
+        if (tokenEntity.isPresent()) {
+            refreshTokenRepository.deleteByToken(token);
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+
     @Transactional(readOnly = true)
     public boolean isValid(String token) {
         return refreshTokenRepository.findByToken(token)

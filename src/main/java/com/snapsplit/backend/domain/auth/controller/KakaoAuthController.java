@@ -1,20 +1,20 @@
 package com.snapsplit.backend.domain.auth.controller;
-import com.snapsplit.backend.domain.auth.dto.KakaoTokenResponse;
-import com.snapsplit.backend.domain.auth.dto.KakaoUserResponse;
-import com.snapsplit.backend.domain.auth.dto.RefreshRequest;
-import com.snapsplit.backend.domain.auth.dto.TokenResponse;
+import com.snapsplit.backend.domain.auth.dto.*;
 import com.snapsplit.backend.domain.auth.service.KakaoOAuthService;
 import com.snapsplit.backend.domain.auth.token.RefreshToken;
 import com.snapsplit.backend.domain.auth.token.RefreshTokenService;
 import com.snapsplit.backend.domain.user.entity.User;
 import com.snapsplit.backend.global.jwt.JwtUtil;
 import com.snapsplit.backend.global.response.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,6 +24,7 @@ public class KakaoAuthController {
     private final KakaoOAuthService kakaoOAuthService;
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @PostMapping("/kakao/login")
     public ResponseEntity<ApiResponse<TokenResponse>> kakaoLogin(@RequestParam String code) {
@@ -48,6 +49,31 @@ public class KakaoAuthController {
         return ResponseEntity.ok(
                 ApiResponse.success("카카오 로그인 성공", jwtResponse)
         );
+    }
+
+    @PostMapping("/kakao/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestBody LogoutRequest request,
+                                                    HttpServletRequest httpRequest) {
+        // 1. access token 추출
+        String token = jwtUtil.resolveToken(httpRequest);
+        if (token == null || !jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(401)
+                    .body(ApiResponse.fail(401, "유효하지 않은 access token입니다."));
+        }
+
+        // 2. access token → Redis 블랙리스트 등록 (TTL: 만료까지 남은 시간)
+        long expiration = jwtUtil.getExpiration(token).getTime() - System.currentTimeMillis();
+        redisTemplate.opsForValue().set(token, "logout", expiration, TimeUnit.MILLISECONDS);
+
+        // 3. refresh token 삭제
+        boolean deleted = refreshTokenService.deleteByToken(request.getRefreshToken());
+        if (!deleted) {
+            return ResponseEntity.status(400)
+                    .body(ApiResponse.fail(400, "refresh token이 존재하지 않습니다."));
+        }
+
+        // 4. 응답
+        return ResponseEntity.ok(ApiResponse.success("로그아웃 완료", null));
     }
 
     @PostMapping("/token/refresh")
