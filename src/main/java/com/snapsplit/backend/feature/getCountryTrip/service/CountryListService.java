@@ -15,6 +15,7 @@ public class CountryListService {
 
     private final CountryRepository countryRepository;
 
+    // 전체 국가 목록 조회
     public List<CountryListResponse> getAllCountries() {
         List<Country> countries = countryRepository.findAll();
         return countries.stream()

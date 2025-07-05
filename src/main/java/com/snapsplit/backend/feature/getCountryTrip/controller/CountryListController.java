@@ -17,6 +17,7 @@ public class CountryListController {
 
     private final CountryListService countryListService;
 
+    // 전체 국가 목록 조회
     @GetMapping
     public ApiResponse<List<CountryListResponse>> getAllCountries() {
         List<CountryListResponse> result = countryListService.getAllCountries();
