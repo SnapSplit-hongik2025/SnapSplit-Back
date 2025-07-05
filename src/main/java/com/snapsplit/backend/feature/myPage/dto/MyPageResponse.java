@@ -1,7 +1,7 @@
 package com.snapsplit.backend.feature.myPage.dto;
 
-public record UserMyPageResponse(
+public record MyPageResponse(
         String name,
-        String profileImage,
+        String profileImageUrl,
         String userCode
 ) {}
