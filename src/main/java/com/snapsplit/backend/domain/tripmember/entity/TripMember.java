@@ -16,17 +16,17 @@ public class TripMember {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "trip_member_id")
-    private Long id; // 여행참가자 아이디
+    private Long id; // tripmember 아이디
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id", nullable = false)
     private Trip trip; // 여행 아이디
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user; // 유저 아이디
+    @JoinColumn(name = "user_id", nullable = true)
+    private User user; // 유저 아이디 (공동경비는 null 가능)
 
     @Enumerated(EnumType.STRING)
     @Column(name = "member_type", nullable = false)
-    private MemberType memberType; // 멤버 타입 (user, shared_fund 등)
+    private MemberType memberType; // USER or SHARED_FUND
 }
