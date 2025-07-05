@@ -35,26 +35,28 @@ public class JwtUtil {
         this.REFRESH_TOKEN_EXP = refreshExp;
     }
 
-    // access token 생성
     public String generateAccessToken(User user) {
-        return createToken(user.getKakaoId(), ACCESS_TOKEN_EXP, "access");
+        return createToken(user.getKakaoId(), ACCESS_TOKEN_EXP, "access", user.getId(), user.getName());
     }
 
-    // refresh token 생성
     public String generateRefreshToken(User user) {
-        return createToken(user.getKakaoId(), REFRESH_TOKEN_EXP, "refresh");
+        return createToken(user.getKakaoId(), REFRESH_TOKEN_EXP, "refresh", user.getId(), user.getName());
     }
+
 
     // jwt 생성
-    private String createToken(String kakaoId, long expireTime, String tokenType) {
+    private String createToken(String kakaoId, long expireTime, String tokenType, Long userId, String nickname) {
         return Jwts.builder()
                 .setSubject(kakaoId)
-                .claim("tokenType", tokenType)
+                .claim("id", userId) // 사용자 아이디
+                .claim("nickname", nickname) // 사용자 닉네임
+                .claim("tokenType", tokenType) // 토큰 타입
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expireTime))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
+
 
     // token에서 kakaoId 추출
     public String getKakaoIdFromToken(String token) {
@@ -66,6 +68,27 @@ public class JwtUtil {
                 .getBody()
                 .getSubject();
     }
+
+    // token에서 userId 추출
+    public Long getUserIdFromToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("id", Long.class);
+    }
+
+    // token에서 nickname 추출
+    public String getNicknameFromToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("nickname", String.class);
+    }
+
 
     // jwt 유효성 검사
     public boolean validateToken(String token) {

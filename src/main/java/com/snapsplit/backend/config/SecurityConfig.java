@@ -28,7 +28,7 @@ public class SecurityConfig {
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         //실제 경로는 "/auth/kakao/login", "/auth/token/refresh
-                        .requestMatchers("/auth/**",
+                        .requestMatchers("/auth/kakao/login", "/auth/token/refresh",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
