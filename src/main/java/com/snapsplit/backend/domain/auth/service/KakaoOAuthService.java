@@ -12,6 +12,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -91,10 +92,17 @@ public class KakaoOAuthService {
                             .kakaoId(kakaoId)
                             .name(nickname)
                             .profileImage(profileImage)
-                            .userCode(UUID.randomUUID().toString())
+                            .userCode(generateUserCode())
                             .build();
                     return userRepository.save(newUser);
                 });
     }
 
+    private String generateUserCode() {
+        return new Random().ints(48, 122 + 1)
+                .filter(i -> (i <= 57 || i >= 65) && (i <= 90 || i >= 97))
+                .limit(6)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
+    }
 }
