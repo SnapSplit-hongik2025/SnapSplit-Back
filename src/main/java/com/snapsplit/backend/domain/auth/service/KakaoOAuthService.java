@@ -32,8 +32,6 @@ public class KakaoOAuthService {
     private String redirectUri;
 
     public KakaoTokenResponse getToken(String code) {
-        System.out.println("[카카오 인가코드 수신] code = " + code);
-
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
@@ -52,12 +50,10 @@ public class KakaoOAuthService {
                 KakaoTokenResponse.class
         );
 
-        System.out.println("[카카오 토큰 응답 수신] access_token = " + response.getBody().getAccessToken());
         return response.getBody();
     }
 
     public KakaoUserResponse getUserInfo(String accessToken) {
-        System.out.println("[카카오 유저 정보 요청] accessToken = " + accessToken);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
@@ -73,7 +69,6 @@ public class KakaoOAuthService {
         );
 
         KakaoUserResponse user = response.getBody();
-        System.out.println("[카카오 유저 정보 수신] id = " + user.getId() + ", nickname = " + user.getProperties().getNickname());
 
         return user;
     }
@@ -83,11 +78,9 @@ public class KakaoOAuthService {
         String nickname = kakaoUser.getProperties().getNickname();
         String profileImage = kakaoUser.getProperties().getProfile_image();
 
-        System.out.println("[DB 조회 시도] kakaoId = " + kakaoId);
 
         return userRepository.findByKakaoId(kakaoId)
                 .orElseGet(() -> {
-                    System.out.println("[신규 회원 등록] nickname = " + nickname);
                     User newUser = User.builder()
                             .kakaoId(kakaoId)
                             .name(nickname)
