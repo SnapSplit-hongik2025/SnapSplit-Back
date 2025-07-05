@@ -1,4 +1,4 @@
-package com.snapsplit.backend.domain.auth.dto;
+package com.snapsplit.backend.feature.auth.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -1,8 +1,8 @@
-package com.snapsplit.backend.domain.auth.controller;
-import com.snapsplit.backend.domain.auth.dto.*;
-import com.snapsplit.backend.domain.auth.service.KakaoOAuthService;
-import com.snapsplit.backend.domain.auth.token.RefreshToken;
-import com.snapsplit.backend.domain.auth.token.RefreshTokenService;
+package com.snapsplit.backend.feature.auth.controller;
+import com.snapsplit.backend.feature.auth.dto.*;
+import com.snapsplit.backend.feature.auth.service.KakaoOAuthService;
+import com.snapsplit.backend.feature.auth.token.RefreshToken;
+import com.snapsplit.backend.feature.auth.token.RefreshTokenService;
 import com.snapsplit.backend.domain.user.entity.User;
 import com.snapsplit.backend.global.jwt.JwtUtil;
 import com.snapsplit.backend.global.response.ApiResponse;

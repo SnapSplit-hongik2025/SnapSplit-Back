@@ -1,4 +1,4 @@
-package com.snapsplit.backend.domain.auth.dto;
+package com.snapsplit.backend.feature.auth.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;

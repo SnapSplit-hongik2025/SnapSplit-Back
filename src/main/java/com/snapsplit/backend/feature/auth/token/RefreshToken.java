@@ -1,12 +1,10 @@
-package com.snapsplit.backend.domain.auth.token;
+package com.snapsplit.backend.feature.auth.token;
 
 import com.snapsplit.backend.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Entity
 @Getter

@@ -1,7 +1,7 @@
-package com.snapsplit.backend.domain.auth.service;
+package com.snapsplit.backend.feature.auth.service;
 
-import com.snapsplit.backend.domain.auth.dto.KakaoTokenResponse;
-import com.snapsplit.backend.domain.auth.dto.KakaoUserResponse;
+import com.snapsplit.backend.feature.auth.dto.KakaoTokenResponse;
+import com.snapsplit.backend.feature.auth.dto.KakaoUserResponse;
 import com.snapsplit.backend.domain.user.entity.User;
 import com.snapsplit.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +13,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Random;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor

@@ -1,4 +1,4 @@
-package com.snapsplit.backend.domain.auth.token;
+package com.snapsplit.backend.feature.auth.token;
 
 import com.snapsplit.backend.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
