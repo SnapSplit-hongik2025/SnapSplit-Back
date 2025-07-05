@@ -21,7 +21,6 @@ public class MyPageService {
     }
 
     public void updateProfile(User user, String name, String profileImageUrl) {
-        System.out.println(">>> 이미지 변경 시도: " + profileImageUrl);
         if (name != null && !name.isBlank()) {
             user.setName(name); //이름(닉네임) 변경
         }
