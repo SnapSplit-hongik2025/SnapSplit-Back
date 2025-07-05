@@ -16,15 +16,18 @@ public class User {
     @Column(name = "user_id") // ← ERD 기준
     private Long id;
 
+    @Setter
     @Column(length = 50, nullable = false)
     private String name;
 
     @Column(name = "kakao_id", length = 100, unique = true, nullable = false)
     private String kakaoId;
 
+    @Setter
     @Column(name = "profile_image", length = 255)
     private String profileImage;
 
     @Column(name = "user_code", length = 50, unique = true, nullable = false)
     private String userCode;
+
 }
