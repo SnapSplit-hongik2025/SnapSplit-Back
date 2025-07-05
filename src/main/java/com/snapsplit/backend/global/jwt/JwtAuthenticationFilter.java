@@ -2,6 +2,7 @@ package com.snapsplit.backend.global.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.snapsplit.backend.global.response.ApiResponse;
+import com.snapsplit.backend.global.security.CustomUserPrincipal;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -44,11 +45,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             if (token != null && jwtUtil.validateToken(token)) {
+                // jwt에서 사용자 정보 식별 정보 추출
+                Long userId = jwtUtil.getUserIdFromToken(token);
                 String kakaoId = jwtUtil.getKakaoIdFromToken(token);
+                String nickname = jwtUtil.getNicknameFromToken(token);
 
+                // 추출한 정보로 커스텀 인증 객체 생성
+                CustomUserPrincipal principal = new CustomUserPrincipal(userId, kakaoId, nickname);
+
+                // SecurityContext에 인증 객체 설정
                 UsernamePasswordAuthenticationToken authenticationToken =
-                        new UsernamePasswordAuthenticationToken(kakaoId, null, null);
-
+                        new UsernamePasswordAuthenticationToken(principal, null, null);
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
             }
 
