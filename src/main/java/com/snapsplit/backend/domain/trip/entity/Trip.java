@@ -1,6 +1,9 @@
 package com.snapsplit.backend.domain.trip.entity;
 
+import com.snapsplit.backend.domain.shared.entity.Shared;
+import com.snapsplit.backend.domain.totalshared.entity.TotalShared;
 import com.snapsplit.backend.domain.tripcountry.entity.TripCountry;
+import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -37,7 +40,26 @@ public class Trip {
     @Column(name = "trip_total_expense")
     private BigDecimal tripTotalExpense; // 지출 총액
 
+    @Column(name = "trip_code", length = 20, nullable = false, unique = true)
+    private String tripCode; // 여행 참여 코드
+
     // 여행 - 여행국가 1 : n 관계
+    // 여행이 삭제되면 TripCountry도 삭제되도록
     @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TripCountry> tripCountries = new ArrayList<>();
+
+    // 여행 - 여행 멤버 1 : n 관계
+    // 여행이 삭제되면 TripMember도 삭제되도록
+    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TripMember> tripMembers = new ArrayList<>();
+
+    // 여행 - 경비 총액 1 : n 관계
+    // 여행이 삭제되면 TotalShared도 삭제되도록
+    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TotalShared> totalSharedList = new ArrayList<>();
+
+    // 여행 - 경비 1 : n 관계
+    // 여행이 삭제되면 Shared도 삭제되도록
+    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Shared> sharedList = new ArrayList<>();
 }
