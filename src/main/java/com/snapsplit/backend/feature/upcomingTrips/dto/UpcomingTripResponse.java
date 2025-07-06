@@ -6,6 +6,7 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @AllArgsConstructor
@@ -15,13 +16,15 @@ public class UpcomingTripResponse {
     private String tripName;
     private LocalDate startDate;
     private LocalDate endDate;
+    private List<String> countryNames;
 
-    public static UpcomingTripResponse from(Trip trip) {
+    public static UpcomingTripResponse from(Trip trip, List<String> countryNames) {
         return new UpcomingTripResponse(
                 trip.getId(),
                 trip.getTripName(),
                 trip.getStartDate(),
-                trip.getEndDate()
+                trip.getEndDate(),
+                countryNames
         );
     }
 }
