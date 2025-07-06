@@ -34,5 +34,18 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
     order by tm.trip.endDate desc
 """)
     List<Trip> findPastTripsByUserId(@Param("userId") Long userId, @Param("today") LocalDate today, Pageable pageable);
+
+    // userId가 해당하는 사용자가 참여한 Trip 중에서,
+    // startDate가 오늘보다 이전이고, endDate가 오늘보다 이후인 Trip 가져오기
+    @Query("""
+    select tm.trip
+    from TripMember tm
+    where tm.user.id = :userId
+      and tm.trip.startDate <= :today
+      and tm.trip.endDate >= :today
+    order by tm.trip.startDate asc
+""")
+    List<Trip> findOngoingTripsByUserId(@Param("userId") Long userId, @Param("today") LocalDate today);
+
     boolean existsByTripAndUser(Trip trip, User user); // 이미 여행에 참여한 사용자인지 확인
 }
