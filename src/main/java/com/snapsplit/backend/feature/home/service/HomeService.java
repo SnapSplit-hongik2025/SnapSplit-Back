@@ -1,6 +1,8 @@
 package com.snapsplit.backend.feature.home.service;
 
 import com.snapsplit.backend.feature.home.dto.HomeResponse;
+import com.snapsplit.backend.feature.ongoingTrips.dto.OngoingTripResponse;
+import com.snapsplit.backend.feature.ongoingTrips.service.OngoingTripsService;
 import com.snapsplit.backend.feature.pastTrips.service.PastTripsService;
 import com.snapsplit.backend.feature.upcomingTrips.service.UpcomingTripsService;
 import com.snapsplit.backend.feature.pastTrips.dto.PastTripResponse;
@@ -9,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -17,14 +18,17 @@ public class HomeService {
 
     private final PastTripsService pastTripsService;
     private final UpcomingTripsService upcomingTripsService;
+    private final OngoingTripsService ongoingTripsService;
 
     public HomeResponse getHome(Long userId) {
         // 지난 여행: limit 5
         List<PastTripResponse> pastTrips = pastTripsService.getPastTrips(userId, 5);
         List<UpcomingTripResponse> upcomingTrips = upcomingTripsService.getUpcomingTrips(userId);
+        List<OngoingTripResponse> ongoingTrips = ongoingTripsService.getOngoingTrips(userId);
 
         return HomeResponse.builder()
                 .upcomingTrips(upcomingTrips)
+                .ongoingTrips(ongoingTrips)
                 .pastTrips(pastTrips)
                 .build();
     }
