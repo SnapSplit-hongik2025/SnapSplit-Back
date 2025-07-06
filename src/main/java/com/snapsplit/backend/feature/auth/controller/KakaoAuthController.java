@@ -8,6 +8,7 @@ import com.snapsplit.backend.global.jwt.JwtUtil;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -28,6 +29,10 @@ public class KakaoAuthController {
     private final RefreshTokenService refreshTokenService;
     private final RedisTemplate<String, String> redisTemplate;
 
+    @Operation(summary = "카카오 로그인",
+            description = "전달받은 인가 코드로 카카오에서 사용자 정보를 받고, " +
+                    "미가입된 회원일 시 회원가입 후 로그인하고 " +
+                    "가입된 회원일 시 바로 로그인합니다.")
     @PostMapping("/kakao/login")
     public ResponseEntity<ApiResponse<TokenResponse>> kakaoLogin(@RequestParam String code) {
         // 인가 코드로 카카오 access token 받기
@@ -53,6 +58,7 @@ public class KakaoAuthController {
         );
     }
 
+    @Operation(summary = "로그아웃")
     @PostMapping("/kakao/logout")
     public ResponseEntity<ApiResponse<Void>> logout(@RequestBody LogoutRequest request,
                                                     HttpServletRequest httpRequest) {
@@ -88,6 +94,7 @@ public class KakaoAuthController {
         return ResponseEntity.ok(ApiResponse.success("로그아웃 완료", null));
     }
 
+    @Operation(summary = "access 토큰 재발급", description = "리프레시 토큰을 기반으로 액세스 토큰을 재발급합니다.")
     @PostMapping("/token/refresh")
     public ResponseEntity<ApiResponse<TokenResponse>> refreshAccessToken(@RequestBody RefreshRequest request) {
         // 클라이언트가 보낸 JSON에서 refreshToken 값 추출
