@@ -20,6 +20,7 @@ public class HomeService {
     private final UpcomingTripsService upcomingTripsService;
     private final OngoingTripsService ongoingTripsService;
 
+    // 기본 홈 정보 조회하기
     public HomeResponse getHome(Long userId) {
         // 지난 여행: limit 5
         List<PastTripResponse> pastTrips = pastTripsService.getPastTrips(userId, 5);

@@ -18,7 +18,7 @@ public class HomeController {
 
     private final HomeService homeService;
 
-    @Operation(summary = "기본 홈 조회", description = "로그인된 사용자 정보를 기반으로 기본 홈에 필요한 정보를 불러옵니다.")
+    @Operation(summary = "기본 홈 정보 조회", description = "로그인된 사용자 정보를 기반으로 기본 홈에 필요한 정보를 불러옵니다.")
     @GetMapping
     public ApiResponse<HomeResponse> getHome(@AuthenticationPrincipal CustomUserPrincipal user) {
         HomeResponse response = homeService.getHome(user.getId());
