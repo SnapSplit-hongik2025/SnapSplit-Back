@@ -2,9 +2,9 @@ package com.snapsplit.backend.domain.tripmember.repository;
 
 import com.snapsplit.backend.domain.trip.entity.Trip;
 import com.snapsplit.backend.domain.tripmember.entity.TripMember;
-import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
