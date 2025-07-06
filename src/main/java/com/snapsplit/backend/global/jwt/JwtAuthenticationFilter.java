@@ -77,10 +77,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
-    //토큰 인증 없이 접근 가능한 경로는 로그인과 토큰재발급뿐
+    //토큰 인증 없이 접근 가능한 경로는 로그인과 토큰 재발급뿐
     private boolean isWhitelisted(String path) {
         return path.equals("/auth/kakao/login")
-                || path.equals("/auth/token/refresh");
+                || path.equals("/auth/token/refresh")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs");
     }
 
     //에러 응답 공통 처리 함수
