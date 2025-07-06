@@ -19,8 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashSet;
-import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -105,10 +105,6 @@ public class CreateTripService {
 
     // 8자리 랜덤 코드 생성 함수
     private String generateTripCode() {
-        return new Random().ints(48, 122 + 1)
-                .filter(i -> (i <= 57 || i >= 65) && (i <= 90 || i >= 97))
-                .limit(8)
-                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-                .toString();
+        return UUID.randomUUID().toString().replaceAll("-", "").substring(0, 8);
     }
 }
