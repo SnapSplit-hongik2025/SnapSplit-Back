@@ -4,6 +4,7 @@ import com.snapsplit.backend.feature.auth.dto.KakaoUserResponse;
 import com.snapsplit.backend.feature.createTrip.dto.TripMemberResponse;
 import com.snapsplit.backend.feature.createTrip.service.TripMemberService;
 import com.snapsplit.backend.global.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,6 +21,7 @@ public class TripMemberController {
     private final TripMemberService tripMemberService;
 
     // 유저 코드로 유저 검색
+    @Operation(summary = "사용자 검색", description = "유저 코드로 여행에 초대할 사용자를 검색합니다.")
     @GetMapping("/code/{userCode}")
     public ResponseEntity<ApiResponse<TripMemberResponse>> getUserByUserCode(
             @PathVariable String userCode,

@@ -1,5 +1,6 @@
 package com.snapsplit.backend.feature.createTrip.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.RequestBody;
 import com.snapsplit.backend.feature.createTrip.dto.CreateTripRequest;
 import com.snapsplit.backend.feature.createTrip.dto.TripResponse;
@@ -22,6 +23,7 @@ public class CreateTripController {
     private final CreateTripService createTripService;
 
     // 신규 여행 등록하기
+    @Operation(summary = "신규 여행 등록하기", description = "새로운 여행을 등록합니다.")
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<List<TripResponse>>> createTrip(@RequestBody CreateTripRequest request) {
         // 여행 생성 후 여행 아이디 리턴받기

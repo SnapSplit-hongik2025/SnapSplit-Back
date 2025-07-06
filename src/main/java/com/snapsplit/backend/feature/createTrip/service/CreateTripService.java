@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.Random;
 import java.util.Set;
 
 @Service
@@ -35,12 +36,18 @@ public class CreateTripService {
     // 신규 여행 등록하기
     @Transactional
     public Long createTrip(CreateTripRequest request) {
+
+        // 8자리 랜덤 코드 생성
+        String tripCode = generateTripCode();
+
+        // Trip 생성
         Trip trip = Trip.builder()
                 .tripName(request.getTripName())
                 .startDate(LocalDate.parse(request.getStartDate()))
                 .endDate(LocalDate.parse(request.getEndDate()))
                 .tripImage(request.getTripImage())
                 .tripTotalExpense(BigDecimal.ZERO)
+                .tripCode(tripCode)
                 .build();
         tripRepository.save(trip);
 
@@ -94,5 +101,14 @@ public class CreateTripService {
         });
 
         return trip.getId();
+    }
+
+    // 8자리 랜덤 코드 생성 함수
+    private String generateTripCode() {
+        return new Random().ints(48, 122 + 1)
+                .filter(i -> (i <= 57 || i >= 65) && (i <= 90 || i >= 97))
+                .limit(8)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
     }
 }

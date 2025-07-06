@@ -7,6 +7,7 @@ import com.snapsplit.backend.feature.myPage.service.MyPageService;
 import com.snapsplit.backend.domain.user.entity.User;
 import com.snapsplit.backend.global.response.ApiResponse;
 import com.snapsplit.backend.global.security.CustomUserPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,8 @@ public class MyPageController {
     private final UserRepository userRepository;
 
     // GET /home/myPage
+    // 마이페이지 조회
+    @Operation(summary = "마이페이지 조회", description = "마이페이지 정보를 조회합니다.")
     @GetMapping
     public ResponseEntity<ApiResponse<MyPageResponse>> getMyPage(
             @AuthenticationPrincipal CustomUserPrincipal principal
@@ -35,6 +38,8 @@ public class MyPageController {
     }
 
     // PUT /home/myPage
+    // 마이페이지 수정
+    @Operation(summary = "마이페이지 수정", description = "기존 마이페이지 정보를 수정합니다.")
     @PutMapping
     public ResponseEntity<ApiResponse<Void>> updateProfile(
             @AuthenticationPrincipal CustomUserPrincipal principal,
