@@ -15,17 +15,13 @@ public class UpcomingTripResponse {
     private String tripName;
     private LocalDate startDate;
     private LocalDate endDate;
-    private String tripImage;
-    private BigDecimal tripTotalExpense;
 
     public static UpcomingTripResponse from(Trip trip) {
         return new UpcomingTripResponse(
                 trip.getId(),
                 trip.getTripName(),
                 trip.getStartDate(),
-                trip.getEndDate(),
-                trip.getTripImage(),
-                trip.getTripTotalExpense()
+                trip.getEndDate()
         );
     }
 }
