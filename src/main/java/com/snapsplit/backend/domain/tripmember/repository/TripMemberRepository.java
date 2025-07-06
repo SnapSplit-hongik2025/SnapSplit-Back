@@ -3,7 +3,7 @@ package com.snapsplit.backend.domain.tripmember.repository;
 import com.snapsplit.backend.domain.trip.entity.Trip;
 import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.PageRequest;
+import com.snapsplit.backend.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -34,5 +34,5 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
     order by tm.trip.endDate desc
 """)
     List<Trip> findPastTripsByUserId(@Param("userId") Long userId, @Param("today") LocalDate today, Pageable pageable);
-
+    boolean existsByTripAndUser(Trip trip, User user); // 이미 여행에 참여한 사용자인지 확인
 }
