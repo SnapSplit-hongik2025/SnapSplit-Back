@@ -90,14 +90,9 @@ public class JwtUtil {
     }
 
 
-    // jwt 유효성 검사
-    public boolean validateToken(String token) {
-        try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
-            return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            return false;
-        }
+    // jwt 유효성 검사 boolean -> void로 바꿔서 에러정보 상세화
+    public void validateToken(String token) {
+        Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
     }
 
     // 리프레시 토큰 만료 시간

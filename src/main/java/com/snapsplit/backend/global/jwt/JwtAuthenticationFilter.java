@@ -16,6 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -30,6 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
 
+        // 화이트리스트 경로는 필터 건너뛰기
         if (isWhitelisted(path)) {
             filterChain.doFilter(request, response);
             return;
@@ -38,51 +40,50 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = jwtUtil.resolveToken(request);
 
         try {
-            //블랙리스트 토큰인지 확인
-            if (token != null && redisTemplate.hasKey(token)) {
+            if (token == null) {
+                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "Access Token이 필요합니다.");
+                return;
+            }
+
+            // 로그아웃된 토큰 여부 확인 (Redis에 저장되어 있음)
+            if (redisTemplate.hasKey(token)) {
                 sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "로그아웃된 토큰입니다.");
                 return;
             }
 
-            if (token != null && jwtUtil.validateToken(token)) {
-                // jwt에서 사용자 정보 식별 정보 추출
-                Long userId = jwtUtil.getUserIdFromToken(token);
-                String kakaoId = jwtUtil.getKakaoIdFromToken(token);
-                String nickname = jwtUtil.getNicknameFromToken(token);
+            // 유효성 검사: 만료, 불일치 등은 내부에서 예외 발생
+            jwtUtil.validateToken(token);
 
-                // 추출한 정보로 커스텀 인증 객체 생성
-                CustomUserPrincipal principal = new CustomUserPrincipal(userId, kakaoId, nickname);
+            // 토큰에서 사용자 정보 추출
+            Long userId = jwtUtil.getUserIdFromToken(token);
+            String kakaoId = jwtUtil.getKakaoIdFromToken(token);
+            String nickname = jwtUtil.getNicknameFromToken(token);
 
-                // SecurityContext에 인증 객체 설정
-                UsernamePasswordAuthenticationToken authenticationToken =
-                        new UsernamePasswordAuthenticationToken(principal, null, null);
-                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-            }
+            // 인증 객체 생성 및 SecurityContext에 등록
+            CustomUserPrincipal principal = new CustomUserPrincipal(userId, kakaoId, nickname);
+            UsernamePasswordAuthenticationToken authenticationToken =
+                    new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList());
+            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
-
+            // 다음 필터로 진행
             filterChain.doFilter(request, response);
 
         } catch (ExpiredJwtException e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json;charset=UTF-8");
-            ApiResponse<?> apiResponse = ApiResponse.fail(401, "토큰이 만료되었습니다.");
-            response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
-
+            //토큰 만료 -> 401
+            sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "토큰이 만료되었습니다.");
         } catch (JwtException | IllegalArgumentException e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json;charset=UTF-8");
-            ApiResponse<?> apiResponse = ApiResponse.fail(401, "유효하지 않은 토큰입니다.");
-            response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
+            //잘못된 토큰 -> 401
+            sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "유효하지 않은 토큰입니다.");
         }
     }
 
+    //토큰 인증 없이 접근 가능한 경로는 로그인과 토큰재발급뿐
     private boolean isWhitelisted(String path) {
         return path.equals("/auth/kakao/login")
-                || path.equals("/auth/token/refresh")
-                || path.equals("/auth/kakao/logout");
+                || path.equals("/auth/token/refresh");
     }
 
-
+    //에러 응답 공통 처리 함수
     private void sendErrorResponse(HttpServletResponse response, int status, String message) throws IOException {
         ApiResponse<Object> errorResponse = ApiResponse.fail(status, message);
         response.setStatus(status);

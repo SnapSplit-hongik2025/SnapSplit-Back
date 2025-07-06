@@ -24,7 +24,6 @@ public class CreateTripController {
     // 신규 여행 등록하기
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<List<TripResponse>>> createTrip(@RequestBody CreateTripRequest request) {
-
         // 여행 생성 후 여행 아이디 리턴받기
         Long tripId = createTripService.createTrip(request);
         // 현재 시각 받아오기

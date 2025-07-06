@@ -6,6 +6,8 @@ import com.snapsplit.backend.feature.auth.token.RefreshTokenService;
 import com.snapsplit.backend.domain.user.entity.User;
 import com.snapsplit.backend.global.jwt.JwtUtil;
 import com.snapsplit.backend.global.response.ApiResponse;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -54,14 +56,25 @@ public class KakaoAuthController {
     @PostMapping("/kakao/logout")
     public ResponseEntity<ApiResponse<Void>> logout(@RequestBody LogoutRequest request,
                                                     HttpServletRequest httpRequest) {
+        System.out.println("[로그아웃] 컨트롤러 진입 성공");
         // 1. access token 추출
         String token = jwtUtil.resolveToken(httpRequest);
-        if (token == null || !jwtUtil.validateToken(token)) {
+        if (token == null) {
+            return ResponseEntity.status(401)
+                    .body(ApiResponse.fail(401, "access token이 없습니다."));
+        }
+
+        try {
+            jwtUtil.validateToken(token);
+        } catch (ExpiredJwtException e) {
+            return ResponseEntity.status(401)
+                    .body(ApiResponse.fail(401, "access token이 만료되었습니다."));
+        } catch (JwtException | IllegalArgumentException e) {
             return ResponseEntity.status(401)
                     .body(ApiResponse.fail(401, "유효하지 않은 access token입니다."));
         }
 
-        // 2. access token → Redis 블랙리스트 등록 (TTL: 만료까지 남은 시간)
+        // 2. access token 블랙리스트 등록 (만료까지의 TTL 설정)
         long expiration = jwtUtil.getExpiration(token).getTime() - System.currentTimeMillis();
         redisTemplate.opsForValue().set(token, "logout", expiration, TimeUnit.MILLISECONDS);
 
@@ -72,7 +85,6 @@ public class KakaoAuthController {
                     .body(ApiResponse.fail(400, "refresh token이 존재하지 않습니다."));
         }
 
-        // 4. 응답
         return ResponseEntity.ok(ApiResponse.success("로그아웃 완료", null));
     }
 
@@ -92,8 +104,8 @@ public class KakaoAuthController {
 
         //refreshToken 만료 여부 확인
         if (refreshTokenEntity.isExpired()) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.fail(401, "refresh token이 만료되었습니다."));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.fail(401, "refresh token이 만료되었습니다."));
         }
 
         User user = refreshTokenEntity.getUser();
