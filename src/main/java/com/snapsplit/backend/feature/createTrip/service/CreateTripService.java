@@ -88,6 +88,11 @@ public class CreateTripService {
                 .build();
         tripMemberRepository.save(sharedFundMember);
 
+        // 선택된 국가에 한국이 없을 경우 공동경비 통화에 기본적으로 KRW 들어가도록 추가
+        if (!currencySet.contains("KRW")) {
+            currencySet.add("KRW");
+        }
+
         // 선택된 여행 국가들에 대해
         // 각 국가의 통화 기준으로 초기 TotalShared(경비 총액) 엔티티 생성
         currencySet.forEach(currency -> {
