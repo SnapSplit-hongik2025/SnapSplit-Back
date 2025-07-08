@@ -4,6 +4,7 @@ import com.snapsplit.backend.feature.addTotalShared.dto.AddTotalSharedRequest;
 import com.snapsplit.backend.feature.addTotalShared.dto.AddTotalSharedResponse;
 import com.snapsplit.backend.feature.addTotalShared.service.RemoveTotalSharedService;
 import com.snapsplit.backend.global.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +20,8 @@ public class RemoveTotalSharedController {
 
     private final RemoveTotalSharedService removeTotalSharedService;
 
+    // 공동 경비 빼기
+    @Operation(summary = "공동 경비 빼기", description = "공동 경비를 회수합니다.")
     @PostMapping("/remove")
     public ResponseEntity<ApiResponse<AddTotalSharedResponse>> removeTotalShared(
             @PathVariable Long tripId,
