@@ -43,13 +43,16 @@ public class KakaoOAuthService {
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
-        ResponseEntity<KakaoTokenResponse> response = restTemplate.postForEntity(
-                "https://kauth.kakao.com/oauth/token",
-                request,
-                KakaoTokenResponse.class
-        );
-
-        return response.getBody();
+        try {
+            ResponseEntity<KakaoTokenResponse> response = restTemplate.postForEntity(
+                    "https://kauth.kakao.com/oauth/token",
+                    request,
+                    KakaoTokenResponse.class
+            );
+            return response.getBody();
+        } catch (Exception e) {
+            throw new RuntimeException("만료되었거나 유효하지 않은 인가코드입니다. 다시 로그인해주세요.");
+        }
     }
 
     public KakaoUserResponse getUserInfo(String accessToken) {

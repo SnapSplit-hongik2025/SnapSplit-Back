@@ -35,27 +35,32 @@ public class KakaoAuthController {
                     "가입된 회원일 시 바로 로그인합니다.")
     @PostMapping("/kakao/login")
     public ResponseEntity<ApiResponse<TokenResponse>> kakaoLogin(@RequestParam String code) {
-        // 인가 코드로 카카오 access token 받기
-        KakaoTokenResponse tokenResponse = kakaoOAuthService.getToken(code);
+        try {
+            // 인가 코드로 카카오 access token 받기
+            KakaoTokenResponse tokenResponse = kakaoOAuthService.getToken(code);
 
-        // 카카오 access token으로 사용자 정보 요청
-        KakaoUserResponse kakaoUser = kakaoOAuthService.getUserInfo(tokenResponse.getAccessToken());
+            // 카카오 access token으로 사용자 정보 요청
+            KakaoUserResponse kakaoUser = kakaoOAuthService.getUserInfo(tokenResponse.getAccessToken());
 
-        // 기존 회원인지 확인하고 없으면 등록
-        User user = kakaoOAuthService.getOrRegisterUser(kakaoUser);
+            // 기존 회원인지 확인하고 없으면 등록
+            User user = kakaoOAuthService.getOrRegisterUser(kakaoUser);
 
-        // 자체 access/refresh JWT 발급
-        String accessToken = jwtUtil.generateAccessToken(user);
-        String refreshToken = jwtUtil.generateRefreshToken(user);
+            // 자체 access/refresh JWT 발급
+            String accessToken = jwtUtil.generateAccessToken(user);
+            String refreshToken = jwtUtil.generateRefreshToken(user);
 
-        refreshTokenService.save(user, refreshToken, jwtUtil.getRefreshTokenExpiry());
+            refreshTokenService.save(user, refreshToken, jwtUtil.getRefreshTokenExpiry());
 
-        // access token 및 refresh token dto
-        TokenResponse jwtResponse = new TokenResponse(accessToken, refreshToken);
+            // access token 및 refresh token dto
+            TokenResponse jwtResponse = new TokenResponse(accessToken, refreshToken);
 
-        return ResponseEntity.ok(
-                ApiResponse.success("카카오 로그인 성공", jwtResponse)
-        );
+            return ResponseEntity.ok(
+                    ApiResponse.success("카카오 로그인 성공", jwtResponse)
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.fail(HttpStatus.UNAUTHORIZED.value(), e.getMessage()));
+        }
     }
 
     @Operation(summary = "로그아웃")
