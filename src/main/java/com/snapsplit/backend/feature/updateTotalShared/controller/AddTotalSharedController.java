@@ -1,8 +1,8 @@
-package com.snapsplit.backend.feature.addTotalShared.controller;
+package com.snapsplit.backend.feature.updateTotalShared.controller;
 
-import com.snapsplit.backend.feature.addTotalShared.dto.AddTotalSharedRequest;
-import com.snapsplit.backend.feature.addTotalShared.dto.AddTotalSharedResponse;
-import com.snapsplit.backend.feature.addTotalShared.service.AddTotalSharedService;
+import com.snapsplit.backend.feature.updateTotalShared.dto.AddTotalSharedRequest;
+import com.snapsplit.backend.feature.updateTotalShared.dto.AddTotalSharedResponse;
+import com.snapsplit.backend.feature.updateTotalShared.service.AddTotalSharedService;
 import com.snapsplit.backend.global.response.ApiResponse;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;

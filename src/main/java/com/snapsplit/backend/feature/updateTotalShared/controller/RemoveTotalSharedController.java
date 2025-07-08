@@ -1,8 +1,8 @@
-package com.snapsplit.backend.feature.addTotalShared.controller;
+package com.snapsplit.backend.feature.updateTotalShared.controller;
 
-import com.snapsplit.backend.feature.addTotalShared.dto.AddTotalSharedRequest;
-import com.snapsplit.backend.feature.addTotalShared.dto.AddTotalSharedResponse;
-import com.snapsplit.backend.feature.addTotalShared.service.RemoveTotalSharedService;
+import com.snapsplit.backend.feature.updateTotalShared.dto.AddTotalSharedRequest;
+import com.snapsplit.backend.feature.updateTotalShared.dto.AddTotalSharedResponse;
+import com.snapsplit.backend.feature.updateTotalShared.service.RemoveTotalSharedService;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.persistence.OptimisticLockException;

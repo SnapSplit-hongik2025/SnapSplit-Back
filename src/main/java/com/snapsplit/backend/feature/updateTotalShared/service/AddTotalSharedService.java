@@ -1,4 +1,4 @@
-package com.snapsplit.backend.feature.addTotalShared.service;
+package com.snapsplit.backend.feature.updateTotalShared.service;
 
 import com.snapsplit.backend.domain.shared.entity.Shared;
 import com.snapsplit.backend.domain.shared.repository.SharedRepository;
@@ -6,8 +6,8 @@ import com.snapsplit.backend.domain.totalshared.entity.TotalShared;
 import com.snapsplit.backend.domain.totalshared.repository.TotalSharedRepository;
 import com.snapsplit.backend.domain.trip.entity.Trip;
 import com.snapsplit.backend.domain.trip.repository.TripRepository;
-import com.snapsplit.backend.feature.addTotalShared.dto.AddTotalSharedRequest;
-import com.snapsplit.backend.feature.addTotalShared.dto.AddTotalSharedResponse;
+import com.snapsplit.backend.feature.updateTotalShared.dto.AddTotalSharedRequest;
+import com.snapsplit.backend.feature.updateTotalShared.dto.AddTotalSharedResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
