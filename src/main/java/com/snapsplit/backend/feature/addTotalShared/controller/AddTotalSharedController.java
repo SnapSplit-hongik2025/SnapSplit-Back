@@ -4,6 +4,7 @@ import com.snapsplit.backend.feature.addTotalShared.dto.AddTotalSharedRequest;
 import com.snapsplit.backend.feature.addTotalShared.dto.AddTotalSharedResponse;
 import com.snapsplit.backend.feature.addTotalShared.service.AddTotalSharedService;
 import com.snapsplit.backend.global.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +20,8 @@ public class AddTotalSharedController {
 
     private final AddTotalSharedService addTotalSharedService;
 
+    // 공동 경비 추가하기
+    @Operation(summary = "공동 경비 추가", description = "공동 경비를 추가합니다.")
     @PostMapping("/add")
     public ResponseEntity<ApiResponse<AddTotalSharedResponse>> addTotalShared(
             @PathVariable Long tripId,
