@@ -5,6 +5,7 @@ import com.snapsplit.backend.feature.addTotalShared.dto.AddTotalSharedResponse;
 import com.snapsplit.backend.feature.addTotalShared.service.RemoveTotalSharedService;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +31,10 @@ public class RemoveTotalSharedController {
         try { // 성공적으로 회수되었을 경우
             AddTotalSharedResponse response = removeTotalSharedService.removeTotalShared(tripId, request);
             return ResponseEntity.ok(ApiResponse.success("공동경비가 성공적으로 회수되었습니다.", response));
+        } catch (OptimisticLockException e) {
+            return ResponseEntity
+                    .status(409) // 409 Conflict
+                    .body(ApiResponse.fail(409, "동시에 여러 요청이 처리되어 충돌이 발생했습니다. 다시 시도해주세요."));
         } catch (IllegalArgumentException e) {
             // 해당 여행을 못 찾았거나
             // 여행과 통화가 일치하는 totalShared를 못 찾았거나
