@@ -1,4 +1,4 @@
-package com.snapsplit.backend.feature.addTotalShared.dto;
+package com.snapsplit.backend.feature.updateTotalShared.dto;
 
 import com.snapsplit.backend.domain.shared.entity.PaymentMethod;
 import lombok.Builder;

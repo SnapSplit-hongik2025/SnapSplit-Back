@@ -1,9 +1,10 @@
-package com.snapsplit.backend.feature.addTotalShared.controller;
+package com.snapsplit.backend.feature.updateTotalShared.controller;
 
-import com.snapsplit.backend.feature.addTotalShared.dto.AddTotalSharedRequest;
-import com.snapsplit.backend.feature.addTotalShared.dto.AddTotalSharedResponse;
-import com.snapsplit.backend.feature.addTotalShared.service.AddTotalSharedService;
+import com.snapsplit.backend.feature.updateTotalShared.dto.AddTotalSharedRequest;
+import com.snapsplit.backend.feature.updateTotalShared.dto.AddTotalSharedResponse;
+import com.snapsplit.backend.feature.updateTotalShared.service.AddTotalSharedService;
 import com.snapsplit.backend.global.response.ApiResponse;
+import jakarta.persistence.OptimisticLockException;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +31,10 @@ public class AddTotalSharedController {
         try {
             AddTotalSharedResponse response = addTotalSharedService.addTotalShared(tripId, request);
             return ResponseEntity.ok(ApiResponse.success("공동경비가 성공적으로 추가되었습니다.", response));
+        } catch (OptimisticLockException e) {
+            return ResponseEntity
+                    .status(409) // 409 Conflict
+                    .body(ApiResponse.fail(409, "동시에 여러 요청이 처리되어 충돌이 발생했습니다. 다시 시도해주세요."));
         } catch (IllegalArgumentException e) {
             // trip_id에 해당하는 여행이 없는 경우
             return ResponseEntity
