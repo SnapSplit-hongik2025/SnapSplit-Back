@@ -32,4 +32,15 @@ public class TotalShared {
 
     @Column(name = "latest_modified", nullable = false)
     private LocalDate latestModified; // 마지막 수정일
+
+    // 경비 총액 업데이트용 setter
+    public void updateTotalSharedAmount(BigDecimal totalSharedAmount) {
+        this.totalSharedAmount = totalSharedAmount;
+    }
+
+    // 최신 입금일자 업데이트 용 setter
+    public void updateLatestModified(LocalDate latestModified) {
+        this.latestModified = latestModified;
+    }
+
 }
