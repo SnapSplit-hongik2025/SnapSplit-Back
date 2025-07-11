@@ -5,11 +5,9 @@ import com.snapsplit.backend.feature.getExchangeRate.service.ExchangeRateService
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
@@ -23,6 +21,12 @@ public class GetExchangeRateController {
     public ApiResponse<ExchangeRateResponse> getExchangeRate(@RequestParam String base) {
         ExchangeRateResponse result = exchangeRateService.fetchExchangeRate(base);
         return ApiResponse.success("환율 조회 성공", result);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Void> handleIllegalArgumentException(IllegalArgumentException e) {
+        return ApiResponse.fail(400, e.getMessage());
     }
 
 }
