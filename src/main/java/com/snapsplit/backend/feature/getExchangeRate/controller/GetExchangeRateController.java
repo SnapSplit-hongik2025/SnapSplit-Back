@@ -18,7 +18,7 @@ public class GetExchangeRateController {
 
     private final ExchangeRateService exchangeRateService;
 
-    @Operation(summary = "현재 일자의 환율 조회", description = "원하는 국가의 현재 환율을 조회합니다.")
+    @Operation(summary = "환율 조회", description = "원하는 국가의 현재 환율을 조회합니다.")
     @GetMapping("/exchangeRate")
     public ApiResponse<ExchangeRateResponse> getExchangeRate(@RequestParam String base) {
         ExchangeRateResponse result = exchangeRateService.fetchExchangeRate(base);

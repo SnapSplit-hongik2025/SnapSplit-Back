@@ -8,5 +8,5 @@ import lombok.Data;
 public class ExchangeRateResponse {
     private String base; // 국가
     private double rateToKrw; // 환율
-    private String date; // 받아온 날
+    private String date; // 환율을 받아온 날
 }
