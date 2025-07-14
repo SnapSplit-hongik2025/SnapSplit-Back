@@ -4,6 +4,7 @@ import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
 import com.snapsplit.backend.feature.addExpense.service.AddExpenseService;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +27,7 @@ public class AddExpenseController {
     )
     public ResponseEntity<ApiResponse<Map<String, Long>>> addExpense(
             @PathVariable Long tripId,
-            @RequestBody AddExpenseRequest request
+            @RequestBody @Valid AddExpenseRequest request
     ){
         try {
             Long expenseId = addExpenseService.addExpense(tripId, request);
@@ -83,7 +84,7 @@ public class AddExpenseController {
     public ResponseEntity<ApiResponse<Map<String, Long>>> updateExpense(
             @PathVariable Long tripId,
             @PathVariable Long expenseId,
-            @RequestBody AddExpenseRequest request
+            @RequestBody @Valid AddExpenseRequest request
     ) {
         try {
             Long newExpenseId = addExpenseService.updateExpense(tripId, expenseId, request);
