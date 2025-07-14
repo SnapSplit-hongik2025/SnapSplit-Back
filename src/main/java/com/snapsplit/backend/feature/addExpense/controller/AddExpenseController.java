@@ -66,4 +66,33 @@ public class AddExpenseController {
     }
 
 
+    //지출 수정
+    @PutMapping("/{expenseId}")
+    @Operation(
+            summary = "지출 수정",
+            description = "기존 지출 내역을 삭제하고, 새로운 지출 정보로 교체합니다."
+    )
+    public ResponseEntity<ApiResponse<Map<String, Long>>> updateExpense(
+            @PathVariable Long tripId,
+            @PathVariable Long expenseId,
+            @RequestBody AddExpenseRequest request
+    ) {
+        try {
+            addExpenseService.deleteExpense(tripId, expenseId);
+            Long newExpenseId = addExpenseService.addExpense(tripId, request);
+            Map<String, Long> response = Map.of("expenseId", newExpenseId);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success("지출이 성공적으로 수정되었습니다.", response)
+            );
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.fail(400, e.getMessage())
+            );
+        }
+    }
+
+
+
 }
