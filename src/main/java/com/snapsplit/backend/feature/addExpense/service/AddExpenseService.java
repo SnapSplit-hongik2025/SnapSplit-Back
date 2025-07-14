@@ -18,6 +18,8 @@ public class AddExpenseService {
     private final PayRepository payRepository;
     private final SplitRepository splitRepository;
 
+
+    //지출 추가
     @Transactional
     public Long addExpense(Long tripId, AddExpenseRequest request) {
         var info = request.expense();
@@ -81,5 +83,14 @@ public class AddExpenseService {
         splitRepository.saveAll(splits);
 
         return expense.getId();
+    }
+
+
+    //지출 삭제
+    @Transactional
+    public void deleteExpense(Long expenseId) {
+        payRepository.deleteByExpenseId(expenseId);
+        splitRepository.deleteByExpenseId(expenseId);
+        expenseRepository.deleteById(expenseId);
     }
 }

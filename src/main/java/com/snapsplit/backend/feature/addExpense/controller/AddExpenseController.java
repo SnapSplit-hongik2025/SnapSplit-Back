@@ -4,6 +4,7 @@ import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
 import com.snapsplit.backend.feature.addExpense.service.AddExpenseService;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,9 +18,10 @@ public class AddExpenseController {
 
     private final AddExpenseService addExpenseService;
 
+    //지출 추가
     @PostMapping
     @Operation(
-            summary = "여행 지출 추가",
+            summary = "지출 추가",
             description = "여행 중 발생한 개별 지출 내역을 등록합니다. 결제자와 분담자 정보를 함께 포함해야 합니다."
     )
     public ResponseEntity<ApiResponse<Map<String, Long>>> addExpense(
@@ -39,4 +41,20 @@ public class AddExpenseController {
             );
         }
     }
+
+
+    //지출 삭제
+    @DeleteMapping("/{expenseId}")
+    @Operation(
+            summary = "지출 삭제",
+            description = "지출 ID를 통해 해당 지출과 관련된 모든 정보를 삭제합니다."
+    )
+    public ResponseEntity<ApiResponse<Void>> deleteExpense(
+            @PathVariable Long tripId,
+            @PathVariable Long expenseId
+    ) {
+        addExpenseService.deleteExpense(expenseId);
+        return ResponseEntity.ok(ApiResponse.success("지출이 성공적으로 삭제되었습니다.", null));
+    }
+
 }
