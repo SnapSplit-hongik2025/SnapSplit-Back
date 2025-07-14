@@ -2,6 +2,9 @@ package com.snapsplit.backend.feature.addExpense.service;
 
 import com.snapsplit.backend.domain.expense.entity.*;
 import com.snapsplit.backend.domain.expense.repository.*;
+import com.snapsplit.backend.domain.tripmember.entity.TripMember;
+import com.snapsplit.backend.domain.expense.entity.Pay;
+import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +21,7 @@ public class AddExpenseService {
     private final ExpenseRepository expenseRepository;
     private final PayRepository payRepository;
     private final SplitRepository splitRepository;
-
+    private final TripMemberRepository tripMemberRepository;
 
     //지출 추가
     @Transactional
@@ -61,15 +64,23 @@ public class AddExpenseService {
         );
 
         // 결제자 저장
-        List<Pay> pays = request.payers().stream().map(payer ->
-                Pay.builder()
-                        .expenseId(expense.getId())
-                        .payerId(payer.tripMemberId())
-                        .payAmount(payer.payerAmount())
-                        .payAmountKrw(payer.payerAmount().multiply(rate))
-                        .memberType(Pay.MemberType.USER) // 기본값
-                        .build()
-        ).toList();
+        List<Pay> pays = request.payers().stream()
+                .map(payer -> {
+                    TripMember tripMember = tripMemberRepository.findById(payer.tripMemberId())
+                            .orElseThrow(() -> new EntityNotFoundException("해당 tripMember가 존재하지 않습니다."));
+
+                    Pay.MemberType memberType = (tripMember.getUser() == null)
+                            ? Pay.MemberType.SHARED_FUND
+                            : Pay.MemberType.USER;
+
+                    return Pay.builder()
+                            .expenseId(expense.getId())
+                            .payerId(payer.tripMemberId())
+                            .payAmount(payer.payerAmount())
+                            .payAmountKrw(payer.payerAmount().multiply(rate))
+                            .memberType(memberType)
+                            .build();
+                }).toList();
         payRepository.saveAll(pays);
 
         // 분담자 저장
