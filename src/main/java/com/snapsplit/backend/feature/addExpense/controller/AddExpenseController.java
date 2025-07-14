@@ -4,10 +4,10 @@ import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
 import com.snapsplit.backend.feature.addExpense.service.AddExpenseService;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.persistence.EntityNotFoundException;
 
 import java.util.Map;
 
@@ -39,6 +39,10 @@ public class AddExpenseController {
             return ResponseEntity.badRequest().body(
                     ApiResponse.fail(400, e.getMessage())
             );
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(404).body(
+                    ApiResponse.fail(404, e.getMessage())
+            );
         }
     }
 
@@ -62,6 +66,10 @@ public class AddExpenseController {
             return ResponseEntity.badRequest().body(
                     ApiResponse.fail(400, e.getMessage())
             );
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(404).body(
+                    ApiResponse.fail(404, e.getMessage())
+            );
         }
     }
 
@@ -78,8 +86,7 @@ public class AddExpenseController {
             @RequestBody AddExpenseRequest request
     ) {
         try {
-            addExpenseService.deleteExpense(tripId, expenseId);
-            Long newExpenseId = addExpenseService.addExpense(tripId, request);
+            Long newExpenseId = addExpenseService.updateExpense(tripId, expenseId, request);
             Map<String, Long> response = Map.of("expenseId", newExpenseId);
 
             return ResponseEntity.ok(
@@ -89,6 +96,10 @@ public class AddExpenseController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(
                     ApiResponse.fail(400, e.getMessage())
+            );
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(404).body(
+                    ApiResponse.fail(404, e.getMessage())
             );
         }
     }

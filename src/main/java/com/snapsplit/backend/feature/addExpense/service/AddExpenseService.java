@@ -3,7 +3,6 @@ package com.snapsplit.backend.feature.addExpense.service;
 import com.snapsplit.backend.domain.expense.entity.*;
 import com.snapsplit.backend.domain.expense.repository.*;
 import com.snapsplit.backend.domain.tripmember.entity.TripMember;
-import com.snapsplit.backend.domain.expense.entity.Pay;
 import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
 import jakarta.persistence.EntityNotFoundException;
@@ -57,8 +56,8 @@ public class AddExpenseService {
                         .expenseCurrency(info.currency())
                         .expenseKrw(expenseAmount.multiply(rate))
                         .category(Expense.Category.valueOf(info.category().toUpperCase()))
-                        .expenseName(info.expense_name())
-                        .expenseMemo(info.expense_memo())
+                        .expenseName(info.expenseName())
+                        .expenseMemo(info.expenseMemo())
                         .paymentMethod(Expense.PaymentMethod.valueOf(info.paymentMethod().toUpperCase()))
                         .build()
         );
@@ -113,5 +112,14 @@ public class AddExpenseService {
         splitRepository.deleteByExpenseId(expenseId);
         expenseRepository.deleteById(expenseId);
     }
+
+
+    //지출 수정
+    @Transactional
+    public Long updateExpense(Long tripId, Long expenseId, AddExpenseRequest request) {
+        deleteExpense(tripId, expenseId); // 기존 지출 삭제
+        return addExpense(tripId, request); // 새 지출 등록
+    }
+
 
 }

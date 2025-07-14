@@ -15,8 +15,8 @@ public record AddExpenseRequest(
             String currency,
             BigDecimal exchangeRate,
             String category,
-            String expense_name,
-            String expense_memo,
+            String expenseName,
+            String expenseMemo,
             String paymentMethod
     ) {}
 
