@@ -47,14 +47,23 @@ public class AddExpenseController {
     @DeleteMapping("/{expenseId}")
     @Operation(
             summary = "지출 삭제",
-            description = "지출 ID를 통해 해당 지출과 관련된 모든 정보를 삭제합니다."
+            description = "특정 여행(tripId) 내 특정 지출(expenseId)을 삭제합니다. 관련된 Pay와 Split 내역도 함께 삭제됩니다."
     )
     public ResponseEntity<ApiResponse<Void>> deleteExpense(
             @PathVariable Long tripId,
             @PathVariable Long expenseId
     ) {
-        addExpenseService.deleteExpense(expenseId);
-        return ResponseEntity.ok(ApiResponse.success("지출이 성공적으로 삭제되었습니다.", null));
+        try {
+            addExpenseService.deleteExpense(tripId, expenseId);
+            return ResponseEntity.ok(
+                    ApiResponse.success("지출이 성공적으로 삭제되었습니다.", null)
+            );
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.fail(400, e.getMessage())
+            );
+        }
     }
+
 
 }

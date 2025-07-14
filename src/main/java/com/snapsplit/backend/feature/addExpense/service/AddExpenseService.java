@@ -3,6 +3,7 @@ package com.snapsplit.backend.feature.addExpense.service;
 import com.snapsplit.backend.domain.expense.entity.*;
 import com.snapsplit.backend.domain.expense.repository.*;
 import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -88,9 +89,18 @@ public class AddExpenseService {
 
     //지출 삭제
     @Transactional
-    public void deleteExpense(Long expenseId) {
+    public void deleteExpense(Long tripId, Long expenseId) {
+
+        Expense expense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 지출이 존재하지 않습니다."));
+
+        if (!expense.getTripId().equals(tripId)) {
+            throw new IllegalArgumentException("여행 정보가 일치하지 않습니다.");
+        }
+
         payRepository.deleteByExpenseId(expenseId);
         splitRepository.deleteByExpenseId(expenseId);
         expenseRepository.deleteById(expenseId);
     }
+
 }
