@@ -8,7 +8,12 @@ import net.minidev.json.JSONObject;
 import net.minidev.json.parser.JSONParser;
 import net.minidev.json.parser.ParseException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -27,16 +32,35 @@ public class ExchangeRateService {
     @Value("${exchange-rate.auth-key}")
     private String authKey;
 
+    @Value("${exchange-rate.timeout}")
+    private int timeout;
+
     public ExchangeRateResponse fetchExchangeRate(String base) {
         String searchDate = getLatestBusinessDay();
         RestTemplate restTemplate = new RestTemplate();
-
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(timeout);
+        factory.setReadTimeout(timeout);
+        restTemplate.setRequestFactory(factory);
+        
         String url = "https://oapi.koreaexim.go.kr/site/program/financial/exchangeJSON"
                 + "?authkey=" + authKey
                 + "&searchdate=" + searchDate
                 + "&data=AP01";
 
-        String response = restTemplate.getForObject(url, String.class);
+        String response;
+        try {
+            response = restTemplate.getForObject(url, String.class);
+            if (response == null || response.trim().isEmpty()) {
+                throw new RuntimeException("환율 API 응답이 비어있습니다.");
+            }
+        } catch (ResourceAccessException e) {
+            throw new RuntimeException("환율 API 서버에 연결할 수 없습니다.", e);
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
+            throw new RuntimeException("환율 API 호출 실패: " + e.getStatusCode(), e);
+        } catch (Exception e) {
+            throw new RuntimeException("환율 API 요청 중 알 수 없는 에러가 발생했습니다.", e);
+        }
 
         JSONParser parser = new JSONParser();
         JSONArray arr;
