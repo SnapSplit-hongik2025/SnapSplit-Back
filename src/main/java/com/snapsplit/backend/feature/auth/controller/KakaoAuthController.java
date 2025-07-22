@@ -34,7 +34,7 @@ public class KakaoAuthController {
                     "미가입된 회원일 시 회원가입 후 로그인하고 " +
                     "가입된 회원일 시 바로 로그인합니다.")
     @PostMapping("/kakao/login")
-    public ResponseEntity<ApiResponse<TokenResponse>> kakaoLogin(@RequestParam String code) {
+    public ResponseEntity<ApiResponse<LoginResponse>> kakaoLogin(@RequestParam String code) {
         try {
             // 인가 코드로 카카오 access token 받기
             KakaoTokenResponse tokenResponse = kakaoOAuthService.getToken(code);
@@ -51,12 +51,17 @@ public class KakaoAuthController {
 
             refreshTokenService.save(user, refreshToken, jwtUtil.getRefreshTokenExpiry());
 
-            // access token 및 refresh token dto
-            TokenResponse jwtResponse = new TokenResponse(accessToken, refreshToken);
+            LoginResponse response = LoginResponse.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .userId(user.getId())
+                    .name(user.getName())
+                    .profileImage(user.getProfileImage())
+                    .userCode(user.getUserCode())
+                    .build();
 
-            return ResponseEntity.ok(
-                    ApiResponse.success("카카오 로그인 성공", jwtResponse)
-            );
+            return ResponseEntity.ok(ApiResponse.success("카카오 로그인 성공", response));
+
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.fail(HttpStatus.UNAUTHORIZED.value(), e.getMessage()));
