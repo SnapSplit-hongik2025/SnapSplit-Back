@@ -30,10 +30,14 @@ public class AddTotalSharedService {
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행이 존재하지 않습니다."));
 
+        // 환율 반영한 한화 금액 계산
+        BigDecimal amountKRW = request.getAmount().multiply(request.getExchangeRate());
+
         // Shared 저장
         Shared shared = Shared.builder()
                 .trip(trip)
                 .amount(request.getAmount())
+                .amountKRW(amountKRW)
                 .currency(request.getCurrency())
                 .paymentMethod(request.getPaymentMethod())
                 .createdAt(request.getCreatedAt())
