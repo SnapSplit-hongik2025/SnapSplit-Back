@@ -22,6 +22,8 @@ import java.time.format.DateTimeFormatter;
 @RequiredArgsConstructor
 public class ExchangeRateService {
 
+    private final HolidayService holidayService;
+
     @Value("${exchange-rate.auth-key}")
     private String authKey;
 
@@ -70,28 +72,30 @@ public class ExchangeRateService {
         return ExchangeRateResponse.builder()
                 .base(base.toUpperCase())
                 .rateToKrw(rate.doubleValue())
-                .date(LocalDate.now().toString())
+                .date(searchDate)
                 .build();
     }
 
-    // 비영업일 또는 영업당일 11시 이전 요청 시 날짜 보정
+    // 비영업일 보정
     private String getLatestBusinessDay() {
-        // 현재 한국 날짜와 시간
+
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         LocalTime nowTime = LocalTime.now(ZoneId.of("Asia/Seoul"));
 
-        // 평일 오전 11시 이전이면 전일 기준
+        // 평일 오전 11시 이전이면 하루 전날로
         if (today.getDayOfWeek().getValue() <= 5 && nowTime.isBefore(LocalTime.of(11, 0))) {
             today = today.minusDays(1);
         }
 
-        // 주말 보정
-        if (today.getDayOfWeek().getValue() == 6) { // 토요일
+        // 주말/공휴일 보정
+        while (isNonBusinessDay(today)) {
             today = today.minusDays(1);
-        } else if (today.getDayOfWeek().getValue() == 7) { // 일요일
-            today = today.minusDays(2);
         }
 
         return today.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+    }
+
+    private boolean isNonBusinessDay(LocalDate date) {
+        return date.getDayOfWeek().getValue() >= 6 || holidayService.isHoliday(date);
     }
 }
