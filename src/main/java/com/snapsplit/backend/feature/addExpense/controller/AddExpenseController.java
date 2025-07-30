@@ -2,6 +2,7 @@ package com.snapsplit.backend.feature.addExpense.controller;
 
 import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
 import com.snapsplit.backend.feature.addExpense.service.AddExpenseService;
+import com.snapsplit.backend.global.aop.CheckTripMember;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -25,6 +26,7 @@ public class AddExpenseController {
             summary = "지출 추가",
             description = "여행 중 발생한 개별 지출 내역을 등록합니다. 결제자와 분담자 정보를 함께 포함해야 합니다."
     )
+    @CheckTripMember
     public ResponseEntity<ApiResponse<Map<String, Long>>> addExpense(
             @PathVariable Long tripId,
             @RequestBody @Valid AddExpenseRequest request
@@ -54,6 +56,7 @@ public class AddExpenseController {
             summary = "지출 삭제",
             description = "특정 여행(tripId) 내 특정 지출(expenseId)을 삭제합니다. 관련된 Pay와 Split 내역도 함께 삭제됩니다."
     )
+    @CheckTripMember
     public ResponseEntity<ApiResponse<Void>> deleteExpense(
             @PathVariable Long tripId,
             @PathVariable Long expenseId
@@ -81,6 +84,7 @@ public class AddExpenseController {
             summary = "지출 수정",
             description = "기존 지출 내역을 삭제하고, 새로운 지출 정보로 교체합니다."
     )
+    @CheckTripMember
     public ResponseEntity<ApiResponse<Map<String, Long>>> updateExpense(
             @PathVariable Long tripId,
             @PathVariable Long expenseId,

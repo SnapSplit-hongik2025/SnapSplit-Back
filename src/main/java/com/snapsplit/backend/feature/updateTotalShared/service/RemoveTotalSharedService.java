@@ -40,11 +40,14 @@ public class RemoveTotalSharedService {
             throw new IllegalArgumentException("회수 금액이 현재 공동경비 총액을 초과할 수 없습니다.");
         }
 
+        // 환율 반영한 한화 금액 계산
+        BigDecimal amountKRW = request.getAmount().multiply(request.getExchangeRate());
 
         // Shared에 음수 금액으로 회수 내역 저장
         Shared shared = Shared.builder()
                 .trip(trip)
                 .amount(request.getAmount().negate()) // 음수 처리
+                .amountKRW(amountKRW)
                 .currency(request.getCurrency())
                 .paymentMethod(request.getPaymentMethod())
                 .createdAt(request.getCreatedAt())

@@ -3,6 +3,7 @@ package com.snapsplit.backend.feature.updateTotalShared.controller;
 import com.snapsplit.backend.feature.updateTotalShared.dto.AddTotalSharedRequest;
 import com.snapsplit.backend.feature.updateTotalShared.dto.AddTotalSharedResponse;
 import com.snapsplit.backend.feature.updateTotalShared.service.RemoveTotalSharedService;
+import com.snapsplit.backend.global.aop.CheckTripMember;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.persistence.OptimisticLockException;
@@ -24,6 +25,7 @@ public class RemoveTotalSharedController {
     // 공동 경비 빼기
     @Operation(summary = "공동 경비 빼기", description = "공동 경비를 회수합니다.")
     @PostMapping("/remove")
+    @CheckTripMember
     public ResponseEntity<ApiResponse<AddTotalSharedResponse>> removeTotalShared(
             @PathVariable Long tripId,
             @RequestBody AddTotalSharedRequest request) {
