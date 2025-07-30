@@ -19,6 +19,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -60,16 +61,20 @@ public class ExchangeRateService {
                 log.warn("환율 API 응답이 비어 있음. Redis 캐시 fallback 시도");
 
                 String redisKey = "exchange:" + base.toUpperCase();
-                String cachedJson = redisTemplate.opsForValue().get(redisKey);
-
-                if (cachedJson != null) {
-                    ExchangeRateResponse cached = objectMapper.readValue(cachedJson, ExchangeRateResponse.class);
-                    log.info("Redis에서 환율 캐시 응답 반환: {}", cached);
-                    return cached;
+                try {
+                    String cachedJson = redisTemplate.opsForValue().get(redisKey);
+                    if (cachedJson != null) {
+                        ExchangeRateResponse cached = objectMapper.readValue(cachedJson, ExchangeRateResponse.class);
+                        log.info("Redis에서 환율 캐시 응답 반환: {}", cached);
+                        return cached;
+                    }
+                } catch (Exception e) {
+                    log.warn("Redis 캐시 조회 실패. 무시하고 예외 처리 진행", e);
                 }
 
                 throw new RuntimeException("환율 API 응답이 비어있고, Redis 캐시도 없습니다.");
             }
+
         } catch (ResourceAccessException e) {
             throw new RuntimeException("환율 API 서버에 연결할 수 없습니다.", e);
         } catch (HttpClientErrorException | HttpServerErrorException e) {
@@ -118,7 +123,7 @@ public class ExchangeRateService {
         // Redis에 저장
         try {
             String json = objectMapper.writeValueAsString(result);
-            redisTemplate.opsForValue().set("exchange:" + base.toUpperCase(), json);
+            redisTemplate.opsForValue().set("exchange:" + base.toUpperCase(), json, Duration.ofHours(24));
             log.info("Redis에 환율 저장 완료: {}", json);
         } catch (Exception e) {
             log.warn("Redis 저장 실패. 무시하고 진행", e);
