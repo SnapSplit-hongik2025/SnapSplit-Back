@@ -2,6 +2,12 @@ package com.snapsplit.backend.feature.addExpense.service;
 
 import com.snapsplit.backend.domain.expense.entity.*;
 import com.snapsplit.backend.domain.expense.repository.*;
+import com.snapsplit.backend.domain.shared.entity.PaymentMethod;
+import com.snapsplit.backend.domain.shared.entity.Shared;
+import com.snapsplit.backend.domain.shared.repository.SharedRepository;
+import com.snapsplit.backend.domain.totalshared.repository.TotalSharedRepository;
+import com.snapsplit.backend.domain.trip.entity.Trip;
+import com.snapsplit.backend.domain.trip.repository.TripRepository;
 import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
@@ -21,6 +27,10 @@ public class AddExpenseService {
     private final PayRepository payRepository;
     private final SplitRepository splitRepository;
     private final TripMemberRepository tripMemberRepository;
+    private final SharedRepository sharedRepository;
+    private final TotalSharedRepository totalSharedRepository;
+    private final TripRepository tripRepository;
+
 
     //지출 추가
     @Transactional
@@ -29,14 +39,29 @@ public class AddExpenseService {
         BigDecimal rate = info.exchangeRate();
         BigDecimal expenseAmount = info.amount();
 
-        // split 총합 검증
+        // Trip 객체 조회 (공동경비 조회 및 Shared 저장용으로 사용)
+        Trip trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 여행이 존재하지 않습니다."));
+
+        // 공동경비 제외한 사용자 pay 총합 계산
+        BigDecimal userPayTotal = request.payers().stream()
+                .filter(p -> {
+                    TripMember tripMember = tripMemberRepository.findById(p.memberId())
+                            .orElseThrow(() -> new EntityNotFoundException("해당 tripMember가 존재하지 않습니다."));
+                    return tripMember.getUser() != null;
+                })
+                .map(AddExpenseRequest.PayerDto::payerAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // split 총합 계산
         BigDecimal splitTotal = request.splitters().stream()
                 .map(AddExpenseRequest.SplitterDto::splitAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (!splitTotal.equals(expenseAmount)) {
-            throw new IllegalArgumentException("splitList의 금액 합계가 지출 금액과 일치하지 않습니다.");
+        if (!splitTotal.equals(userPayTotal)) {
+            throw new IllegalArgumentException("splitList의 금액 합계가 사용자 결제 금액과 일치하지 않습니다.");
         }
+
 
         // pay 총합 검증
         BigDecimal payTotal = request.payers().stream()
@@ -62,7 +87,7 @@ public class AddExpenseService {
                         .build()
         );
 
-        // 결제자 저장
+        // 결제자 저장 & 공동 경비 처리
         List<Pay> pays = request.payers().stream()
                 .map(payer -> {
                     TripMember tripMember = tripMemberRepository.findById(payer.memberId())
@@ -71,6 +96,33 @@ public class AddExpenseService {
                     Pay.MemberType memberType = (tripMember.getUser() == null)
                             ? Pay.MemberType.SHARED_FUND
                             : Pay.MemberType.USER;
+
+                    // 공동경비 결제자 처리
+                    if (memberType == Pay.MemberType.SHARED_FUND) {
+                        var totalShared = totalSharedRepository.findByTripAndTotalSharedCurrency(trip, info.currency())
+                                .orElseThrow(() -> new IllegalArgumentException("공동경비가 존재하지 않습니다."));
+
+                        BigDecimal current = totalShared.getTotalSharedAmount();
+                        BigDecimal used = payer.payerAmount();
+
+                        if (current.compareTo(used) < 0) {
+                            throw new IllegalArgumentException("공동경비 잔액이 부족합니다.");
+                        }
+
+                        // 공동 경비 잔액 차감 및 최신 수정일 갱신
+                        totalShared.updateTotalSharedAmount(current.subtract(used));
+                        totalShared.updateLatestModified(java.time.LocalDate.now());
+                        totalSharedRepository.save(totalShared);
+
+                        //공동 경비 사용 이력 추가
+                        sharedRepository.save(Shared.builder()
+                                .trip(trip)
+                                .amount(used.negate())
+                                .currency(info.currency())
+                                .paymentMethod(PaymentMethod.valueOf(info.paymentMethod().trim().toLowerCase()))
+                                .createdAt(java.time.LocalDate.now())
+                                .build());
+                    }
 
                     return Pay.builder()
                             .expenseId(expense.getId())
