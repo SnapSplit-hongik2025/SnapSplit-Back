@@ -34,14 +34,14 @@ public record AddExpenseRequest(
 
     public record PayerDto(
             @NotNull
-            Long tripMemberId,
+            Long memberId,
             @NotNull @DecimalMin(value = "0.0", inclusive = false)
             BigDecimal payerAmount
     ) {}
 
     public record SplitterDto(
             @NotNull
-            Long tripMemberId,
+            Long memberId,
             @NotNull @DecimalMin(value = "0.0", inclusive = false)
             BigDecimal splitAmount
     ) {}

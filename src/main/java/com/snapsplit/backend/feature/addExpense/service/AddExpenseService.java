@@ -65,7 +65,7 @@ public class AddExpenseService {
         // 결제자 저장
         List<Pay> pays = request.payers().stream()
                 .map(payer -> {
-                    TripMember tripMember = tripMemberRepository.findById(payer.tripMemberId())
+                    TripMember tripMember = tripMemberRepository.findById(payer.memberId())
                             .orElseThrow(() -> new EntityNotFoundException("해당 tripMember가 존재하지 않습니다."));
 
                     Pay.MemberType memberType = (tripMember.getUser() == null)
@@ -74,7 +74,7 @@ public class AddExpenseService {
 
                     return Pay.builder()
                             .expenseId(expense.getId())
-                            .payerId(payer.tripMemberId())
+                            .payerId(payer.memberId())
                             .payAmount(payer.payerAmount())
                             .payAmountKrw(payer.payerAmount().multiply(rate))
                             .memberType(memberType)
@@ -86,7 +86,7 @@ public class AddExpenseService {
         List<Split> splits = request.splitters().stream().map(splitter ->
                 Split.builder()
                         .expenseId(expense.getId())
-                        .splitterId(splitter.tripMemberId())
+                        .splitterId(splitter.memberId())
                         .splitAmount(splitter.splitAmount())
                         .splitAmountKrw(splitter.splitAmount().multiply(rate))
                         .build()
