@@ -18,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,11 +46,21 @@ public class AddExpenseService {
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행이 존재하지 않습니다."));
 
+        // 모든 payer의 TripMember를 한 번에 조회
+        List<Long> payerMemberIds = request.payers().stream()
+                .map(AddExpenseRequest.PayerDto::memberId)
+                .toList();
+        Map<Long, TripMember> tripMemberMap = tripMemberRepository.findAllById(payerMemberIds)
+                .stream()
+                .collect(Collectors.toMap(TripMember::getId, Function.identity()));
+
         // 공동경비 제외한 사용자 pay 총합 계산
         BigDecimal userPayTotal = request.payers().stream()
                 .filter(p -> {
-                    TripMember tripMember = tripMemberRepository.findById(p.memberId())
-                            .orElseThrow(() -> new EntityNotFoundException("해당 tripMember가 존재하지 않습니다."));
+                    TripMember tripMember = tripMemberMap.get(p.memberId());
+                    if (tripMember == null) {
+                        throw new EntityNotFoundException("해당 tripMember가 존재하지 않습니다.");
+                    }
                     return tripMember.getUser() != null;
                 })
                 .map(AddExpenseRequest.PayerDto::payerAmount)
@@ -119,7 +132,7 @@ public class AddExpenseService {
                                 .trip(trip)
                                 .amount(used.negate())
                                 .currency(info.currency())
-                                .paymentMethod(PaymentMethod.valueOf(info.paymentMethod().trim().toLowerCase()))
+                                .paymentMethod(parsePaymentMethod(info.paymentMethod()))
                                 .createdAt(java.time.LocalDate.now())
                                 .build());
                     }
@@ -171,6 +184,14 @@ public class AddExpenseService {
     public Long updateExpense(Long tripId, Long expenseId, AddExpenseRequest request) {
         deleteExpense(tripId, expenseId); // 기존 지출 삭제
         return addExpense(tripId, request); // 새 지출 등록
+    }
+
+    private PaymentMethod parsePaymentMethod(String value) {
+        try {
+            return PaymentMethod.valueOf(value.trim().toLowerCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("유효하지 않은 결제 방식입니다: " + value);
+        }
     }
 
 
