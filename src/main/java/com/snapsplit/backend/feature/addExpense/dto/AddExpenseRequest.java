@@ -1,6 +1,7 @@
 package com.snapsplit.backend.feature.addExpense.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -15,8 +16,8 @@ public record AddExpenseRequest(
 ) {
 
     public record ExpenseDto(
-            @NotNull @Min(1)
-            Integer day,
+            @NotNull
+            LocalDate date,
             @NotNull @DecimalMin(value = "0.0", inclusive = false)
             BigDecimal amount,
             @NotBlank

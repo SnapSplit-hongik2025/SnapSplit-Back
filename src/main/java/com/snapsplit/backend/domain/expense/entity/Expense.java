@@ -21,11 +21,8 @@ public class Expense {
     @Column(name = "trip_id", nullable = false)
     private Long tripId;
 
-    @Column(name = "expense_date", nullable = true)
+    @Column(name = "expense_date", nullable = false)
     private LocalDate expenseDate;
-
-    @Column(name = "expense_day", nullable = false)
-    private Integer expenseDay;
 
     @Column(name = "expense_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal expenseAmount;
