@@ -1,8 +1,6 @@
 package com.snapsplit.backend.global.exception;
 
 import com.snapsplit.backend.global.response.ApiResponse;
-import com.snapsplit.backend.global.security.exception.ForbiddenException;
-import com.snapsplit.backend.global.security.exception.UnauthorizedException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
