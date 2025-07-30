@@ -47,7 +47,7 @@ public class ExchangeRateService {
         factory.setConnectTimeout(timeout);
         factory.setReadTimeout(timeout);
         restTemplate.setRequestFactory(factory);
-        
+
         String url = "https://oapi.koreaexim.go.kr/site/program/financial/exchangeJSON"
                 + "?authkey=" + authKey
                 + "&searchdate=" + searchDate

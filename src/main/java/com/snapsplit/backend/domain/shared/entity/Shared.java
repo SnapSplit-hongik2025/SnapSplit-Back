@@ -27,6 +27,9 @@ public class Shared {
     @Column(name = "shared_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount; // 경비 입금액
 
+    @Column(name = "shared_amount_krw", nullable = false)
+    private BigDecimal amountKRW; // 한화 환산 금액
+
     @Column(name = "shared_currency", length = 10, nullable = false)
     private String currency; // 경비 입금 통화
 
