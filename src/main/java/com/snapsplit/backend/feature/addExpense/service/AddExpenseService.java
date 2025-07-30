@@ -51,7 +51,7 @@ public class AddExpenseService {
         Expense expense = expenseRepository.save(
                 Expense.builder()
                         .tripId(tripId)
-                        .expenseDay(info.day())
+                        .expenseDate(info.date())
                         .expenseAmount(expenseAmount)
                         .expenseCurrency(info.currency())
                         .expenseKrw(expenseAmount.multiply(rate))
