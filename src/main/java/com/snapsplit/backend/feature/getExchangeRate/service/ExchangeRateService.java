@@ -1,5 +1,6 @@
 package com.snapsplit.backend.feature.getExchangeRate.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.snapsplit.backend.feature.getExchangeRate.dto.ExchangeRateResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,7 @@ import net.minidev.json.JSONObject;
 import net.minidev.json.parser.JSONParser;
 import net.minidev.json.parser.ParseException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -28,6 +31,8 @@ import java.time.format.DateTimeFormatter;
 public class ExchangeRateService {
 
     private final HolidayService holidayService;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper; // JSON 직렬화/역직렬화용
 
     @Value("${exchange-rate.auth-key}")
     private String authKey;
@@ -51,9 +56,25 @@ public class ExchangeRateService {
         String response;
         try {
             response = restTemplate.getForObject(url, String.class);
+
             if (response == null || response.trim().isEmpty()) {
-                throw new RuntimeException("환율 API 응답이 비어있습니다.");
+                log.warn("환율 API 응답이 비어 있음. Redis 캐시 fallback 시도");
+
+                String redisKey = "exchange:" + base.toUpperCase();
+                try {
+                    String cachedJson = redisTemplate.opsForValue().get(redisKey);
+                    if (cachedJson != null) {
+                        ExchangeRateResponse cached = objectMapper.readValue(cachedJson, ExchangeRateResponse.class);
+                        log.info("Redis에서 환율 캐시 응답 반환: {}", cached);
+                        return cached;
+                    }
+                } catch (Exception e) {
+                    log.warn("Redis 캐시 조회 실패. 무시하고 예외 처리 진행", e);
+                }
+
+                throw new RuntimeException("환율 API 응답이 비어있고, Redis 캐시도 없습니다.");
             }
+
         } catch (ResourceAccessException e) {
             throw new RuntimeException("환율 API 서버에 연결할 수 없습니다.", e);
         } catch (HttpClientErrorException | HttpServerErrorException e) {
@@ -93,11 +114,23 @@ public class ExchangeRateService {
             rate = rate.divide(BigDecimal.valueOf(100));
         }
 
-        return ExchangeRateResponse.builder()
+        ExchangeRateResponse result = ExchangeRateResponse.builder()
                 .base(base.toUpperCase())
                 .rateToKrw(rate.doubleValue())
                 .date(searchDate)
                 .build();
+
+        // Redis에 저장
+        try {
+            String json = objectMapper.writeValueAsString(result);
+            redisTemplate.opsForValue().set("exchange:" + base.toUpperCase(), json, Duration.ofHours(24));
+            log.info("Redis에 환율 저장 완료: {}", json);
+        } catch (Exception e) {
+            log.warn("Redis 저장 실패. 무시하고 진행", e);
+        }
+
+        return result;
+
     }
 
     // 비영업일 보정
