@@ -3,6 +3,8 @@ package com.snapsplit.backend.feature.addExpense.dto;
 import lombok.Builder;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Currency;
 import java.util.List;
 
 @Builder
@@ -12,7 +14,7 @@ public record ExpenseDetailResponse(
         BigDecimal amountKRW,
         String currency,
         String paymentMethod,
-        String date,
+        LocalDate date,
         String expenseName,
         String expenseMemo,
         String category,

@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Currency;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -205,7 +206,7 @@ public class AddExpenseService {
                 .amountKRW(expense.getExpenseKrw())
                 .currency(expense.getExpenseCurrency())
                 .paymentMethod(expense.getPaymentMethod().toString().toLowerCase())
-                .date(expense.getExpenseDate().toString())
+                .date(expense.getExpenseDate())
                 .expenseName(expense.getExpenseName())
                 .expenseMemo(expense.getExpenseMemo())
                 .category(expense.getCategory().toString())

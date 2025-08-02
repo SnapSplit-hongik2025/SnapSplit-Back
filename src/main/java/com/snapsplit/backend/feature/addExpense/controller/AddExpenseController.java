@@ -61,10 +61,20 @@ public class AddExpenseController {
             @PathVariable Long tripId,
             @PathVariable Long expenseId
     ) {
-        ExpenseDetailResponse response = addExpenseService.getExpenseDetail(tripId, expenseId);
-        return ResponseEntity.ok(
-                ApiResponse.success("지출 상세 조회 성공", response)
-        );
+        try{
+            ExpenseDetailResponse response = addExpenseService.getExpenseDetail(tripId, expenseId);
+            return ResponseEntity.ok(
+                    ApiResponse.success("지출 상세 조회 성공", response)
+            );
+        } catch(IllegalArgumentException e){
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.fail(400, e.getMessage())
+            );
+        } catch(EntityNotFoundException e){
+            return ResponseEntity.status(404).body(
+                    ApiResponse.fail(404, e.getMessage())
+            );
+        }
     }
 
 
