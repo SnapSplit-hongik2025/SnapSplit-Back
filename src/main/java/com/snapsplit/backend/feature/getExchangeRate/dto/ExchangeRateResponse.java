@@ -2,8 +2,9 @@ package com.snapsplit.backend.feature.getExchangeRate.dto;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 
-@Data
+@Getter
 @Builder
 public class ExchangeRateResponse {
     private String base; // 국가

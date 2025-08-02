@@ -47,5 +47,7 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
 """)
     List<Trip> findOngoingTripsByUserId(@Param("userId") Long userId, @Param("today") LocalDate today);
 
+    List<TripMember> findAllByTripId(Long tripId);
+    
     boolean existsByTripAndUser(Trip trip, User user); // 이미 여행에 참여한 사용자인지 확인
 }
