@@ -131,6 +131,7 @@ public class AddExpenseService {
                         sharedRepository.save(Shared.builder()
                                 .trip(trip)
                                 .amount(used.negate())
+                                .amountKRW(used.negate().multiply(rate))
                                 .currency(info.currency())
                                 .paymentMethod(parsePaymentMethod(info.paymentMethod()))
                                 .createdAt(java.time.LocalDate.now())
