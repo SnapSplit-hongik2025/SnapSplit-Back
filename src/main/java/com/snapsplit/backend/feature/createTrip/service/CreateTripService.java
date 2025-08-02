@@ -48,6 +48,7 @@ public class CreateTripService {
                 .tripImage(request.getTripImage())
                 .tripTotalExpense(BigDecimal.ZERO)
                 .tripCode(tripCode)
+                .defaultCurrency("KRW")
                 .build();
         tripRepository.save(trip);
 
