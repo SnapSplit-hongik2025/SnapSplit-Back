@@ -1,6 +1,7 @@
 package com.snapsplit.backend.feature.addExpense.controller;
 
 import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
+import com.snapsplit.backend.feature.addExpense.dto.ExpenseDetailResponse;
 import com.snapsplit.backend.feature.addExpense.service.AddExpenseService;
 import com.snapsplit.backend.global.aop.CheckTripMember;
 import com.snapsplit.backend.global.response.ApiResponse;
@@ -47,6 +48,23 @@ public class AddExpenseController {
                     ApiResponse.fail(404, e.getMessage())
             );
         }
+    }
+
+    //지출 상세 조회
+    @CheckTripMember
+    @GetMapping("/{expenseId}")
+    @Operation(
+            summary = "지출 상세 조회",
+            description = "특정 여행(tripId) 내 특정 지출(expenseId)의 상세 정보를 조회합니다."
+    )
+    public ResponseEntity<ApiResponse<ExpenseDetailResponse>> getExpenseDetail(
+            @PathVariable Long tripId,
+            @PathVariable Long expenseId
+    ) {
+        ExpenseDetailResponse response = addExpenseService.getExpenseDetail(tripId, expenseId);
+        return ResponseEntity.ok(
+                ApiResponse.success("지출 상세 조회 성공", response)
+        );
     }
 
 

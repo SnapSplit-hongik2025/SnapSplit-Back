@@ -11,6 +11,7 @@ import com.snapsplit.backend.domain.trip.repository.TripRepository;
 import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
+import com.snapsplit.backend.feature.addExpense.dto.ExpenseDetailResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -162,6 +163,56 @@ public class AddExpenseService {
         return expense.getId();
     }
 
+
+    //지출 상세보기
+    @Transactional(readOnly = true)
+    public ExpenseDetailResponse getExpenseDetail(Long tripId, Long expenseId) {
+        Expense expense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new EntityNotFoundException("해당 지출이 존재하지 않습니다."));
+
+        if (!expense.getTripId().equals(tripId)) {
+            throw new IllegalArgumentException("해당 여행의 지출이 아닙니다.");
+        }
+
+        List<ExpenseDetailResponse.MemberAmountDto> payers = payRepository.findByExpenseId(expenseId)
+                .stream()
+                .map(pay -> {
+                    TripMember member = tripMemberRepository.findById(pay.getPayerId())
+                            .orElseThrow(() -> new EntityNotFoundException("해당 결제자 멤버를 찾을 수 없습니다."));
+                    String name = (member.getUser() != null) ? member.getUser().getName() : "공동경비";
+                    return ExpenseDetailResponse.MemberAmountDto.builder()
+                            .memberId(member.getId())
+                            .name(name)
+                            .amount(pay.getPayAmount())
+                            .build();
+                }).toList();
+
+        List<ExpenseDetailResponse.MemberAmountDto> splitters = splitRepository.findByExpenseId(expenseId)
+                .stream()
+                .map(split -> {
+                    TripMember member = tripMemberRepository.findById(split.getSplitterId())
+                            .orElseThrow(() -> new EntityNotFoundException("해당 분담자 멤버를 찾을 수 없습니다."));
+                    return ExpenseDetailResponse.MemberAmountDto.builder()
+                            .memberId(member.getId())
+                            .name(member.getUser().getName())
+                            .amount(split.getSplitAmount())
+                            .build();
+                }).toList();
+
+        return ExpenseDetailResponse.builder()
+                .expenseId(expense.getId())
+                .amount(expense.getExpenseAmount())
+                .amountKRW(expense.getExpenseKrw())
+                .currency(expense.getExpenseCurrency())
+                .paymentMethod(expense.getPaymentMethod().toString().toLowerCase())
+                .date(expense.getExpenseDate().toString())
+                .expenseName(expense.getExpenseName())
+                .expenseMemo(expense.getExpenseMemo())
+                .category(expense.getCategory().toString())
+                .payers(payers)
+                .splitters(splitters)
+                .build();
+    }
 
     //지출 삭제
     @Transactional

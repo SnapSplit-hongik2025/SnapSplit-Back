@@ -27,7 +27,7 @@ public class AddExpensePageController {
     public ApiResponse<AddExpensePageResponse> getAddExpensePageData(
             @PathVariable Long tripId,
             @RequestParam(name = "date")
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate date
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ){
 
         AddExpensePageResponse response = addExpensePageService.getAddExpensePageData(tripId, date);
