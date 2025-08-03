@@ -48,6 +48,7 @@ public class CreateTripService {
                 .tripImage(request.getTripImage())
                 .tripTotalExpense(BigDecimal.ZERO)
                 .tripCode(tripCode)
+                .defaultCurrency("KRW")
                 .build();
         tripRepository.save(trip);
 
@@ -70,7 +71,7 @@ public class CreateTripService {
 
 
         // TripMember 생성 - 실제 여행 참여 유저
-        request.getTripMembersId().forEach(memberId -> {
+        request.getMembersId().forEach(memberId -> {
             TripMember tripMember = TripMember.builder()
                     .trip(trip)
                     .user(userRepository.findById(memberId)

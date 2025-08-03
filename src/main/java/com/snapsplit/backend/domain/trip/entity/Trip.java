@@ -43,6 +43,9 @@ public class Trip {
     @Column(name = "trip_code", length = 20, nullable = false, unique = true)
     private String tripCode; // 여행 참여 코드
 
+    @Column(name = "default_currency", length = 20, nullable = false)
+    private String defaultCurrency; // 대표 통화
+
     // 여행 - 여행국가 1 : n 관계
     // 여행이 삭제되면 TripCountry도 삭제되도록
     @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)

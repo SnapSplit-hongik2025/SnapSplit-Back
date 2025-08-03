@@ -11,6 +11,8 @@ import com.snapsplit.backend.domain.trip.repository.TripRepository;
 import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
+import com.snapsplit.backend.feature.addExpense.dto.ExpenseDetailResponse;
+import com.snapsplit.backend.domain.shared.entity.SharedType;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -131,9 +133,12 @@ public class AddExpenseService {
                         sharedRepository.save(Shared.builder()
                                 .trip(trip)
                                 .amount(used.negate())
+                                .amountKRW(used.negate().multiply(rate))
                                 .currency(info.currency())
                                 .paymentMethod(parsePaymentMethod(info.paymentMethod()))
                                 .createdAt(java.time.LocalDate.now())
+                                .sharedType(SharedType.EXPENSE)
+                                .expenseId(expense.getId())
                                 .build());
                     }
 
@@ -162,6 +167,56 @@ public class AddExpenseService {
     }
 
 
+    //지출 상세보기
+    @Transactional(readOnly = true)
+    public ExpenseDetailResponse getExpenseDetail(Long tripId, Long expenseId) {
+        Expense expense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new EntityNotFoundException("해당 지출이 존재하지 않습니다."));
+
+        if (!expense.getTripId().equals(tripId)) {
+            throw new IllegalArgumentException("해당 여행의 지출이 아닙니다.");
+        }
+
+        List<ExpenseDetailResponse.MemberAmountDto> payers = payRepository.findByExpenseId(expenseId)
+                .stream()
+                .map(pay -> {
+                    TripMember member = tripMemberRepository.findById(pay.getPayerId())
+                            .orElseThrow(() -> new EntityNotFoundException("해당 결제자 멤버를 찾을 수 없습니다."));
+                    String name = (member.getUser() != null) ? member.getUser().getName() : "공동경비";
+                    return ExpenseDetailResponse.MemberAmountDto.builder()
+                            .memberId(member.getId())
+                            .name(name)
+                            .amount(pay.getPayAmount())
+                            .build();
+                }).toList();
+
+        List<ExpenseDetailResponse.MemberAmountDto> splitters = splitRepository.findByExpenseId(expenseId)
+                .stream()
+                .map(split -> {
+                    TripMember member = tripMemberRepository.findById(split.getSplitterId())
+                            .orElseThrow(() -> new EntityNotFoundException("해당 분담자 멤버를 찾을 수 없습니다."));
+                    return ExpenseDetailResponse.MemberAmountDto.builder()
+                            .memberId(member.getId())
+                            .name(member.getUser().getName())
+                            .amount(split.getSplitAmount())
+                            .build();
+                }).toList();
+
+        return ExpenseDetailResponse.builder()
+                .expenseId(expense.getId())
+                .amount(expense.getExpenseAmount())
+                .amountKRW(expense.getExpenseKrw())
+                .currency(expense.getExpenseCurrency())
+                .paymentMethod(expense.getPaymentMethod().toString().toLowerCase())
+                .date(expense.getExpenseDate())
+                .expenseName(expense.getExpenseName())
+                .expenseMemo(expense.getExpenseMemo())
+                .category(expense.getCategory().toString())
+                .payers(payers)
+                .splitters(splitters)
+                .build();
+    }
+
     //지출 삭제
     @Transactional
     public void deleteExpense(Long tripId, Long expenseId) {
@@ -173,9 +228,31 @@ public class AddExpenseService {
             throw new IllegalArgumentException("여행 정보가 일치하지 않습니다.");
         }
 
+        Trip trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new IllegalArgumentException("여행 정보가 존재하지 않습니다."));
+
+        // 공동경비로 지불한 금액 복원
+        List<Pay> pays = payRepository.findByExpenseId(expenseId);
+        for (Pay pay : pays) {
+            if (pay.getMemberType() == Pay.MemberType.SHARED_FUND) {
+                var totalShared = totalSharedRepository.findByTripAndTotalSharedCurrency(trip, expense.getExpenseCurrency())
+                        .orElseThrow(() -> new IllegalArgumentException("해당 통화의 공동경비가 존재하지 않습니다."));
+
+                totalShared.updateTotalSharedAmount(totalShared.getTotalSharedAmount().add(pay.getPayAmount()));
+                totalShared.updateLatestModified(java.time.LocalDate.now());
+                totalSharedRepository.save(totalShared);
+            }
+        }
+
         payRepository.deleteByExpenseId(expenseId);
         splitRepository.deleteByExpenseId(expenseId);
         expenseRepository.deleteById(expenseId);
+
+        sharedRepository.deleteByTripIdAndExpenseIdAndSharedType(
+                tripId,
+                expenseId,
+                SharedType.EXPENSE
+        );
     }
 
 

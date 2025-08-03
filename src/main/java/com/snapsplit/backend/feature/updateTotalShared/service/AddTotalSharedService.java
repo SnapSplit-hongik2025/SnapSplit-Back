@@ -1,6 +1,7 @@
 package com.snapsplit.backend.feature.updateTotalShared.service;
 
 import com.snapsplit.backend.domain.shared.entity.Shared;
+import com.snapsplit.backend.domain.shared.entity.SharedType;
 import com.snapsplit.backend.domain.shared.repository.SharedRepository;
 import com.snapsplit.backend.domain.totalshared.entity.TotalShared;
 import com.snapsplit.backend.domain.totalshared.repository.TotalSharedRepository;
@@ -40,6 +41,7 @@ public class AddTotalSharedService {
                 .amountKRW(amountKRW)
                 .currency(request.getCurrency())
                 .paymentMethod(request.getPaymentMethod())
+                .sharedType(SharedType.DEPOSIT)
                 .createdAt(request.getCreatedAt())
                 .build();
         sharedRepository.save(shared);
