@@ -50,21 +50,23 @@ public class CategoryExpenseService {
     //지출 추가시 카테고리별 누적 지출 금액 증가
     @Transactional
     public void updateOnExpenseAdd(Long tripId, Expense.Category category, BigDecimal amountKRW) {
+        if (amountKRW == null || amountKRW.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("금액은 0 이상이어야 합니다.");
+        }
+
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행이 존재하지 않습니다."));
 
         CategoryExpense categoryExpense = categoryExpenseRepository.findByTripAndCategory(trip, category)
-                .orElse(null);
-
-        if (categoryExpense == null) {
-            categoryExpense = CategoryExpense.builder()
-                    .trip(trip)
-                    .category(category)
-                    .amountKRW(amountKRW)
-                    .build();
-        } else {
-            categoryExpense.increase(amountKRW);
-        }
+                .map(existing -> {
+                    existing.increase(amountKRW);
+                    return existing;
+                })
+                .orElseGet(() -> CategoryExpense.builder()
+                        .trip(trip)
+                        .category(category)
+                        .amountKRW(amountKRW)
+                        .build());
 
         categoryExpenseRepository.save(categoryExpense);
     }
@@ -72,15 +74,19 @@ public class CategoryExpenseService {
     // 지출 삭제시 카테고리별 누적 지출 금액 차감
     @Transactional
     public void updateOnExpenseDelete(Long tripId, Expense.Category category, BigDecimal amountKRW) {
+        if (amountKRW == null || amountKRW.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("금액은 0 이상이어야 합니다.");
+        }
+
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행이 존재하지 않습니다."));
 
         CategoryExpense categoryExpense = categoryExpenseRepository.findByTripAndCategory(trip, category)
-                .orElse(null);
-
-        if (categoryExpense != null) {
-            categoryExpense.decrease(amountKRW);
-            categoryExpenseRepository.save(categoryExpense);
+                .orElseThrow(() -> new IllegalArgumentException("해당 카테고리의 지출 기록이 존재하지 않습니다."));
+        if (categoryExpense.getAmountKRW().compareTo(amountKRW) < 0) {
+            throw new IllegalArgumentException("차감할 금액이 현재 누적 금액보다 큽니다.");
         }
+        categoryExpense.decrease(amountKRW);
+        categoryExpenseRepository.save(categoryExpense);
     }
 }

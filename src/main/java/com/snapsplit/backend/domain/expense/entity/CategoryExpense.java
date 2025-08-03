@@ -34,9 +34,8 @@ public class CategoryExpense {
     @Column(name = "amount_krw", nullable = false)
     private BigDecimal amountKRW;
 
-    @Builder.Default
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime updatedAt;
 
     public void increase(BigDecimal amount) {
         this.amountKRW = this.amountKRW.add(amount);
