@@ -1,3 +1,12 @@
+---
+name: ✨ Feature Request
+about: 새로운 기능을 제안하거나 구현할 작업을 정리해요
+title: '[Feat] '
+labels: ['feature']
+assignees: ''
+---
+
+
 ### ✨ 개요
 무엇을 구현할 예정인가요?
 
