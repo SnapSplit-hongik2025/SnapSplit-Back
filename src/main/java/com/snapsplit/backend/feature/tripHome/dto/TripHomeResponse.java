@@ -13,6 +13,7 @@ public record TripHomeResponse(
         LocalDate startDate,
         LocalDate endDate,
         List<String> countries,
+        List<String> memberProfileImages,
         SharedFundDto sharedFund,
         TopCategoryExpenseDto topCategoryExpense,
         List<DailyExpenseDto> dailyExpenses,

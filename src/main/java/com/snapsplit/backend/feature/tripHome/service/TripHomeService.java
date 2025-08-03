@@ -46,6 +46,13 @@ public class TripHomeService {
                 .map(tripCountry -> tripCountry.getCountry().getCountryName())
                 .toList();
 
+        // 여행 멤버 프로필 이미지
+        List<String> memberProfileImages = trip.getTripMembers().stream()
+                .filter(tm -> tm.getUser() != null)         // 👈 실제 유저만
+                .map(tm -> tm.getUser().getProfileImage())
+                .filter(Objects::nonNull)                   // (선택) 프로필 없는 경우 제외
+                .toList();
+
         // 공동경비 정보 (대표통화 기준)
         TotalShared totalShared = totalSharedRepository
                 .findByTripAndTotalSharedCurrency(trip, trip.getDefaultCurrency())
@@ -139,6 +146,7 @@ public class TripHomeService {
                 .startDate(trip.getStartDate())
                 .endDate(trip.getEndDate())
                 .countries(countries)
+                .memberProfileImages(memberProfileImages)
                 .sharedFund(sharedFund)
                 .topCategoryExpense(topCategoryExpense)
                 .dailyExpenses(dailyExpenses)
