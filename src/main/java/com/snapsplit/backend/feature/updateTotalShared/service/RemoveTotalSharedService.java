@@ -51,7 +51,7 @@ public class RemoveTotalSharedService {
                 .amountKRW(amountKRW)
                 .currency(request.getCurrency())
                 .paymentMethod(request.getPaymentMethod())
-                .sharedType(SharedType.DEPOSIT)
+                .sharedType(SharedType.WITHDRAW)
                 .createdAt(request.getCreatedAt())
                 .build();
         sharedRepository.save(shared);
