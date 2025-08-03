@@ -41,6 +41,15 @@ public class ExchangeRateService {
     private int timeout;
 
     public ExchangeRateResponse fetchExchangeRate(String base) {
+        // base가 krw일 경우 그냥 환율 1로 return
+        if (base.equalsIgnoreCase("KRW")) {
+            return ExchangeRateResponse.builder()
+                    .base("KRW")
+                    .rateToKrw(1.0)
+                    .date(getLatestBusinessDay())
+                    .build();
+        }
+        
         String searchDate = getLatestBusinessDay();
         RestTemplate restTemplate = new RestTemplate();
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
