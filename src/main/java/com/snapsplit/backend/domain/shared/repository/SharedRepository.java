@@ -20,4 +20,7 @@ public interface SharedRepository extends JpaRepository<Shared, Long> {
             @Param("sharedType") SharedType sharedType
     );
 
+    // 여행과 통화로 Shared 검색
+    List<Shared> findByTrip(Trip trip);
+
 }
