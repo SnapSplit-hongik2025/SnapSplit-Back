@@ -11,6 +11,7 @@ public interface SplitRepository extends JpaRepository<Split, Long> {
 
     @Query("SELECT s FROM Split s WHERE s.expenseId = :expenseId")
     List<Split> findByExpenseId(@Param("expenseId") Long expenseId);
+    List<Split> findByExpenseIdIn(List<Long> expenseIds);
 
     @Modifying
     @Query("DELETE FROM Split s WHERE s.expenseId = :expenseId")

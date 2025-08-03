@@ -17,6 +17,7 @@ import com.snapsplit.backend.feature.tripHome.dto.TripHomeResponse.*;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -35,6 +36,7 @@ public class TripHomeService {
     private final TripMemberRepository tripMemberRepository;
 
 
+    @Transactional(readOnly=true)
     public TripHomeResponse getTripHome(Long tripId) {
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행이 존재하지 않습니다."));
@@ -71,11 +73,9 @@ public class TripHomeService {
         // 전체 지출
         List<Expense> expenses = expenseRepository.findAllByTripId(tripId);
 
-        // 지출 ID로 모든 split 미리 조회
+        // 지출 ID로 모든 split 한 번에  조회
         List<Long> expenseIds = expenses.stream().map(Expense::getId).toList();
-        List<Split> allSplits = expenseIds.stream()
-                .flatMap(id -> splitRepository.findByExpenseId(id).stream())
-                .toList();
+        List<Split> allSplits = splitRepository.findByExpenseIdIn(expenseIds);
 
         // splitterId -> name Map 만들기
         Set<Long> splitterIds = allSplits.stream()
@@ -97,11 +97,16 @@ public class TripHomeService {
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> {
                     LocalDate date = entry.getKey();
+                    // expense ID별로 splits를 그룹화
+                    Map<Long, List<Split>> splitsByExpenseId = allSplits.stream()
+                            .collect(Collectors.groupingBy(Split::getExpenseId));
+
                     List<ExpenseDto> expenseDtos = entry.getValue().stream()
                             .map(expense -> {
-                                List<String> splitterNames = allSplits.stream()
-                                        .filter(split -> Objects.equals(split.getExpenseId(), expense.getId()))
+                                List<String> splitterNames = splitsByExpenseId.getOrDefault(expense.getId(), Collections.emptyList())
+                                        .stream()
                                         .map(split -> splitterNameMap.get(split.getSplitterId()))
+                                        .filter(Objects::nonNull)
                                         .toList();
 
                                 return ExpenseDto.builder()
