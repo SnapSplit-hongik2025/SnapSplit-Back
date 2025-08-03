@@ -68,6 +68,11 @@ public class GetSharedDetailsService {
                                     type = SharedType.EXPENSE.name().toLowerCase();
                                     title = e.getExpenseName();
                                     memo = e.getExpenseMemo();
+                                } else {
+                                    // expense를 찾을 수 없는 경우
+                                    type = SharedType.EXPENSE.name().toLowerCase();
+                                    title = "알 수 없는 지출";
+                                    memo = "";
                                 }
                             } else {
                                 // DEPOSIT인 경우
