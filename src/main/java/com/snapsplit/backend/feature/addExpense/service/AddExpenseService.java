@@ -12,13 +12,13 @@ import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
 import com.snapsplit.backend.feature.addExpense.dto.ExpenseDetailResponse;
+import com.snapsplit.backend.domain.shared.entity.SharedType;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Currency;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -137,6 +137,8 @@ public class AddExpenseService {
                                 .currency(info.currency())
                                 .paymentMethod(parsePaymentMethod(info.paymentMethod()))
                                 .createdAt(java.time.LocalDate.now())
+                                .sharedType(SharedType.EXPENSE)
+                                .expenseId(expense.getId())
                                 .build());
                     }
 
@@ -226,9 +228,31 @@ public class AddExpenseService {
             throw new IllegalArgumentException("여행 정보가 일치하지 않습니다.");
         }
 
+        Trip trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new IllegalArgumentException("여행 정보가 존재하지 않습니다."));
+
+        // 공동경비로 지불한 금액 복원
+        List<Pay> pays = payRepository.findByExpenseId(expenseId);
+        for (Pay pay : pays) {
+            if (pay.getMemberType() == Pay.MemberType.SHARED_FUND) {
+                var totalShared = totalSharedRepository.findByTripAndTotalSharedCurrency(trip, expense.getExpenseCurrency())
+                        .orElseThrow(() -> new IllegalArgumentException("해당 통화의 공동경비가 존재하지 않습니다."));
+
+                totalShared.updateTotalSharedAmount(totalShared.getTotalSharedAmount().add(pay.getPayAmount()));
+                totalShared.updateLatestModified(java.time.LocalDate.now());
+                totalSharedRepository.save(totalShared);
+            }
+        }
+
         payRepository.deleteByExpenseId(expenseId);
         splitRepository.deleteByExpenseId(expenseId);
         expenseRepository.deleteById(expenseId);
+
+        sharedRepository.deleteByTripIdAndExpenseIdAndSharedType(
+                tripId,
+                expenseId,
+                SharedType.EXPENSE
+        );
     }
 
 

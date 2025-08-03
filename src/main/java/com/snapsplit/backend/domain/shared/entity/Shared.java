@@ -40,4 +40,10 @@ public class Shared {
     @Column(name = "payment_method", nullable = false)
     private PaymentMethod paymentMethod; // 경비 입금 방식
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "shared_type", nullable = false)
+    private SharedType sharedType; // 사용 유형 (입금/출금/지출)
+
+    @Column(name = "expense_id")
+    private Long expenseId; // 지출에 의해 차감된 경우 연관된 지출 ID (nullable)
 }
