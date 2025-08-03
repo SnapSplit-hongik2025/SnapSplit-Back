@@ -13,6 +13,7 @@ import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
 import com.snapsplit.backend.feature.addExpense.dto.ExpenseDetailResponse;
 import com.snapsplit.backend.domain.shared.entity.SharedType;
+import com.snapsplit.backend.feature.getCategoryExpense.service.CategoryExpenseService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,8 @@ public class AddExpenseService {
     private final SharedRepository sharedRepository;
     private final TotalSharedRepository totalSharedRepository;
     private final TripRepository tripRepository;
+    private final CategoryExpenseService categoryExpenseService;
+
 
 
     //지출 추가
@@ -163,6 +166,12 @@ public class AddExpenseService {
         ).toList();
         splitRepository.saveAll(splits);
 
+        //카테고리별 누적 지출 반영
+        categoryExpenseService.updateOnExpenseAdd(
+                tripId,
+                expense.getCategory(),
+                expense.getExpenseKrw()
+        );
         return expense.getId();
     }
 
@@ -252,6 +261,13 @@ public class AddExpenseService {
                 tripId,
                 expenseId,
                 SharedType.EXPENSE
+        );
+
+        // 카테고리별 누적 지출 차감
+        categoryExpenseService.updateOnExpenseDelete(
+                tripId,
+                expense.getCategory(),
+                expense.getExpenseKrw()
         );
     }
 
