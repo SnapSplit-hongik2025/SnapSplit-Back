@@ -48,9 +48,9 @@ public class TripHomeService {
 
         // 여행 멤버 프로필 이미지
         List<String> memberProfileImages = trip.getTripMembers().stream()
-                .filter(tm -> tm.getUser() != null)         // 👈 실제 유저만
+                .filter(tm -> tm.getUser() != null)         // 공동경비 제외, 실제 유저만
                 .map(tm -> tm.getUser().getProfileImage())
-                .filter(Objects::nonNull)                   // (선택) 프로필 없는 경우 제외
+                .filter(Objects::nonNull)                   // 프로필 없는 경우 제외
                 .toList();
 
         // 공동경비 정보 (대표통화 기준)
@@ -100,15 +100,21 @@ public class TripHomeService {
         Map<LocalDate, List<Expense>> expensesByDate = expenses.stream()
                 .collect(Collectors.groupingBy(Expense::getExpenseDate));
 
-        List<DailyExpenseDto> dailyExpenses = expensesByDate.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .map(entry -> {
-                    LocalDate date = entry.getKey();
-                    // expense ID별로 splits를 그룹화
-                    Map<Long, List<Split>> splitsByExpenseId = allSplits.stream()
-                            .collect(Collectors.groupingBy(Split::getExpenseId));
+        // 전체 기간 날짜 구간 생성
+        List<LocalDate> allDates = trip.getStartDate()
+                .datesUntil(trip.getEndDate().plusDays(1))
+                .toList();
 
-                    List<ExpenseDto> expenseDtos = entry.getValue().stream()
+        // expense ID별로 splits를 그룹화 (미리 처리)
+        Map<Long, List<Split>> splitsByExpenseId = allSplits.stream()
+                .collect(Collectors.groupingBy(Split::getExpenseId));
+
+        // 날짜별 지출 리스트 생성 (지출 없는 날짜도 포함)
+        List<DailyExpenseDto> dailyExpenses = allDates.stream()
+                .map(date -> {
+                    List<Expense> expensesOnDate = expensesByDate.getOrDefault(date, Collections.emptyList());
+
+                    List<ExpenseDto> expenseDtos = expensesOnDate.stream()
                             .map(expense -> {
                                 List<String> splitterNames = splitsByExpenseId.getOrDefault(expense.getId(), Collections.emptyList())
                                         .stream()
@@ -134,6 +140,7 @@ public class TripHomeService {
                             .build();
                 })
                 .toList();
+
 
         // 전체 지출 총합 (KRW)
         BigDecimal totalExpenseKRW = categoryExpenses.stream()
