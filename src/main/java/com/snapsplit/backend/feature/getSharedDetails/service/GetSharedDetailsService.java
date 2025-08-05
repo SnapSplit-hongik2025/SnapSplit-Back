@@ -33,7 +33,6 @@ public class GetSharedDetailsService {
     private final TripRepository tripRepository;
     private final SharedRepository sharedRepository;
     private final ExpenseRepository expenseRepository;
-    private final PayRepository payRepository;
     private final TotalSharedRepository totalSharedRepository;
 
     @Transactional(readOnly = true)
