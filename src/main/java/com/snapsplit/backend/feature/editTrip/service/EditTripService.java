@@ -96,4 +96,18 @@ public class EditTripService {
                 trip.getTripImage()
         );
     }
+
+
+
+
+
+    // 여행 삭제하기
+    @Transactional
+    public void deleteTrip(Long tripId) {
+        Trip trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "해당 여행이 존재하지 않습니다."));
+
+        tripRepository.delete(trip);
+    }
 }

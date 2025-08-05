@@ -65,4 +65,15 @@ public class EditTripController {
     }
 
 
+
+
+    @CheckTripMember
+    @Operation(summary = "여행 삭제", description = "해당 여행과 관련된 모든 데이터를 삭제합니다.")
+    @DeleteMapping("/{tripId}")
+    public ResponseEntity<ApiResponse<Void>> deleteTrip(@PathVariable Long tripId) {
+        editTripService.deleteTrip(tripId);
+        return ResponseEntity.ok(ApiResponse.success("여행 삭제 성공", null));
+    }
+
+
 }
