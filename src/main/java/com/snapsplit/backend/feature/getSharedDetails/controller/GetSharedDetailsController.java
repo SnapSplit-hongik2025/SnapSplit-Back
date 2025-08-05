@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/trips/{tripId}/shared/details")
+@RequestMapping("/trips/{tripId}/budget/details")
 @RequiredArgsConstructor
 public class GetSharedDetailsController {
 
