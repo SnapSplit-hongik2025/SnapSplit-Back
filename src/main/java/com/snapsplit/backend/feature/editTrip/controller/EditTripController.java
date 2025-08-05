@@ -3,6 +3,7 @@ package com.snapsplit.backend.feature.editTrip.controller;
 import com.snapsplit.backend.feature.editTrip.dto.CountriesResponse;
 import com.snapsplit.backend.feature.editTrip.dto.ScheduleResponse;
 import com.snapsplit.backend.feature.editTrip.dto.UpdateCountriesRequest;
+import com.snapsplit.backend.feature.editTrip.dto.UpdateScheduleRequest;
 import com.snapsplit.backend.feature.editTrip.service.EditTripService;
 import com.snapsplit.backend.global.aop.CheckTripMember;
 import com.snapsplit.backend.global.response.ApiResponse;
@@ -46,5 +47,17 @@ public class EditTripController {
         ScheduleResponse response = editTripService.getTripSchedule(tripId);
         return ResponseEntity.ok(ApiResponse.success("여행 일정 조회 성공", response));
     }
+
+    @CheckTripMember
+    @Operation(summary = "여행 일정 수정", description = "여행의 시작일과 종료일을 수정합니다.")
+    @PatchMapping("/{tripId}/schedule")
+    public ResponseEntity<ApiResponse<Void>> updateTripSchedule(
+            @PathVariable Long tripId,
+            @RequestBody UpdateScheduleRequest request
+    ) {
+        editTripService.updateTripSchedule(tripId, request);
+        return ResponseEntity.ok(ApiResponse.success("여행 일정 수정 성공",null));
+    }
+
 
 }

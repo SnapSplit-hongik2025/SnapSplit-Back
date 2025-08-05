@@ -7,6 +7,7 @@ import com.snapsplit.backend.domain.tripcountry.entity.TripCountry;
 import com.snapsplit.backend.feature.editTrip.dto.CountriesResponse;
 import com.snapsplit.backend.feature.editTrip.dto.ScheduleResponse;
 import com.snapsplit.backend.feature.editTrip.dto.UpdateCountriesRequest;
+import com.snapsplit.backend.feature.editTrip.dto.UpdateScheduleRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -65,7 +66,7 @@ public class EditTripService {
         trip.getTripCountries().addAll(newTripCountries);
     }
 
-    //수정 전 여행 일정 불러오기
+    // 수정 전 여행 일정 불러오기
     @Transactional(readOnly = true)
     public ScheduleResponse getTripSchedule(Long tripId) {
         Trip trip = tripRepository.findById(tripId)
@@ -73,5 +74,16 @@ public class EditTripService {
                         HttpStatus.NOT_FOUND, "해당 여행이 존재하지 않습니다."));
 
         return new ScheduleResponse(trip.getStartDate(), trip.getEndDate());
+    }
+
+    // 여행 일정 수정하기
+    @Transactional
+    public void updateTripSchedule(Long tripId, UpdateScheduleRequest request) {
+        Trip trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "해당 여행이 존재하지 않습니다."));
+
+        trip.setStartDate(request.startDate());
+        trip.setEndDate(request.endDate());
     }
 }

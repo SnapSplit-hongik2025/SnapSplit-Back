@@ -28,9 +28,11 @@ public class Trip {
     @Column(name = "trip_name", length = 100, nullable = false)
     private String tripName; // 여행 이름
 
+    @Setter
     @Column(nullable = false)
     private LocalDate startDate; // 시작일
 
+    @Setter
     @Column(nullable = false)
     private LocalDate endDate; // 종료일
 
