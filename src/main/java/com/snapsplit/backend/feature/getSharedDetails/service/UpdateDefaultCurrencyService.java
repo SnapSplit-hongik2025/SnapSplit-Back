@@ -23,7 +23,6 @@ public class UpdateDefaultCurrencyService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행이 존재하지 않습니다."));
 
         String before = trip.getDefaultCurrency(); // 기존 대표 통화값
-        tripRepository.updateDefaultCurrencyById(tripId, newCurrency); // 대표 통화 변경
 
         // 이용 가능한 통화 목록
         List<String> availCurrencies = totalSharedRepository.findByTrip(trip).stream()
@@ -35,6 +34,8 @@ public class UpdateDefaultCurrencyService {
         if (!availCurrencies.contains(newCurrency)) {
             throw new IllegalArgumentException("선택한 통화는 현재 공동경비에 사용되지 않았습니다.");
         }
+
+        tripRepository.updateDefaultCurrencyById(tripId, newCurrency); // 대표 통화 변경
         
         return UpdateDefaultCurrencyResponse.builder()
                 .before(before)
