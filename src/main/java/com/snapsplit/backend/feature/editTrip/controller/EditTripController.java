@@ -1,9 +1,6 @@
 package com.snapsplit.backend.feature.editTrip.controller;
 
-import com.snapsplit.backend.feature.editTrip.dto.CountriesResponse;
-import com.snapsplit.backend.feature.editTrip.dto.ScheduleResponse;
-import com.snapsplit.backend.feature.editTrip.dto.UpdateCountriesRequest;
-import com.snapsplit.backend.feature.editTrip.dto.UpdateScheduleRequest;
+import com.snapsplit.backend.feature.editTrip.dto.*;
 import com.snapsplit.backend.feature.editTrip.service.EditTripService;
 import com.snapsplit.backend.global.aop.CheckTripMember;
 import com.snapsplit.backend.global.response.ApiResponse;
@@ -57,6 +54,14 @@ public class EditTripController {
     ) {
         editTripService.updateTripSchedule(tripId, request);
         return ResponseEntity.ok(ApiResponse.success("여행 일정 수정 성공",null));
+    }
+
+    @CheckTripMember
+    @Operation(summary = "여행 이름 및 대표 이미지 조회", description = "여행 제목과 대표 이미지를 조회합니다.")
+    @GetMapping("/{tripId}/info")
+    public ResponseEntity<ApiResponse<TripInfoResponse>> getTripInfo(@PathVariable Long tripId) {
+        TripInfoResponse response = editTripService.getTripInfo(tripId);
+        return ResponseEntity.ok(ApiResponse.success("여행 정보 조회 성공", response));
     }
 
 

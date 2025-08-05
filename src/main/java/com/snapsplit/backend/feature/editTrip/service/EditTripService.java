@@ -4,10 +4,7 @@ import com.snapsplit.backend.domain.country.repository.CountryRepository;
 import com.snapsplit.backend.domain.trip.entity.Trip;
 import com.snapsplit.backend.domain.trip.repository.TripRepository;
 import com.snapsplit.backend.domain.tripcountry.entity.TripCountry;
-import com.snapsplit.backend.feature.editTrip.dto.CountriesResponse;
-import com.snapsplit.backend.feature.editTrip.dto.ScheduleResponse;
-import com.snapsplit.backend.feature.editTrip.dto.UpdateCountriesRequest;
-import com.snapsplit.backend.feature.editTrip.dto.UpdateScheduleRequest;
+import com.snapsplit.backend.feature.editTrip.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -85,5 +82,18 @@ public class EditTripService {
 
         trip.setStartDate(request.startDate());
         trip.setEndDate(request.endDate());
+    }
+
+    // 수정 전 여행명 및 대표 사진 불러오기
+    @Transactional(readOnly = true)
+    public TripInfoResponse getTripInfo(Long tripId) {
+        Trip trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "해당 여행이 존재하지 않습니다."));
+
+        return new TripInfoResponse(
+                trip.getTripName(),
+                trip.getTripImage()
+        );
     }
 }
