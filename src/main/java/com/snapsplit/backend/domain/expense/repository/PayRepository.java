@@ -6,7 +6,10 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 public interface PayRepository extends JpaRepository<Pay, Long> {
 
@@ -17,4 +20,6 @@ public interface PayRepository extends JpaRepository<Pay, Long> {
     @Query("DELETE FROM Pay p WHERE p.expenseId = :expenseId")
     void deleteByExpenseId(@Param("expenseId") Long expenseId);
 
+    // 여러 개의 expenseId에 대해서 Pay 검색
+    List<Pay> findAllByExpenseIdIn(List<Long> expenseIds);
 }

@@ -1,5 +1,6 @@
 package com.snapsplit.backend.domain.expense.entity;
 
+import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -28,5 +29,9 @@ public class Split {
 
     @Column(name = "split_amount_krw", nullable = false, precision = 10, scale = 2)
     private BigDecimal splitAmountKrw;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "splitter_id", insertable = false, updatable = false)
+    private TripMember splitter;
 }
 
