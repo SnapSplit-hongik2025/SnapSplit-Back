@@ -61,7 +61,9 @@ public class SettlementService {
 
         for (Pay pay : pays) {
             if (pay.getMemberType() == SHARED_FUND) continue; // 공동경비는 제외
-
+            if (pay.getPayer() == null) {
+                continue;
+            }
             Long memberId = pay.getPayer().getId();
             paidMap.put(memberId,
                     paidMap.getOrDefault(memberId, BigDecimal.ZERO).add(pay.getPayAmountKrw()));

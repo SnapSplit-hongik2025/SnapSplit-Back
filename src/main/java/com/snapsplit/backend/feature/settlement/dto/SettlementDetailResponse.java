@@ -1,5 +1,6 @@
 package com.snapsplit.backend.feature.settlement.dto;
 
+import com.snapsplit.backend.domain.expense.entity.Pay;
 import lombok.Builder;
 import lombok.Data;
 

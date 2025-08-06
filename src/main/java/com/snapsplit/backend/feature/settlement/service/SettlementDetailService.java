@@ -42,6 +42,10 @@ public class SettlementDetailService {
         Settlement settlement = settlementRepository.findById(settlementId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 정산이 존재하지 않습니다."));
 
+        if (!settlement.getTrip().getId().equals(tripId)) {
+            throw new IllegalArgumentException("정산이 해당 여행에 속하지 않습니다.");
+        }
+
         // 정산 상세 내역 조회
         List<SettlementDetail> details = settlementDetailRepository.findAllBySettlementId(settlementId);
 
@@ -102,7 +106,7 @@ public class SettlementDetailService {
                             .memberId(tm.getId())
                             .name(tm.getMemberType() == MemberType.SHARED_FUND
                                     ? "공동경비"
-                                    : tm.getUser().getName())
+                                    : tm.getUser() != null ? tm.getUser().getName() : "Unknown")
                             .amount(amount)
                             .memberType(tm.getMemberType().name().toLowerCase()) // "user" 또는 "shared_fund"
                             .build();
