@@ -1,5 +1,6 @@
 package com.snapsplit.backend.domain.expense.entity;
 
+import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -22,6 +23,10 @@ public class Pay {
 
     @Column(name = "payer_id", nullable = false)
     private Long payerId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payer_id", insertable = false, updatable = false)
+    private TripMember payer;
 
     @Column(name = "pay_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal payAmount;
