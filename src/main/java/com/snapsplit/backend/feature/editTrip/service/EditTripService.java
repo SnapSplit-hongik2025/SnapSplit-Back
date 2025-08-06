@@ -31,14 +31,23 @@ public class EditTripService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "해당 여행이 존재하지 않습니다."));
 
-        List<CountriesResponse.CountryDto> countryDtos = trip.getTripCountries().stream()
+        //선택된 국가 목록
+        List<CountriesResponse.CountryDto> selectedCountries = trip.getTripCountries().stream()
                 .map(tripCountry -> new CountriesResponse.CountryDto(
                         tripCountry.getCountry().getId(),
                         tripCountry.getCountry().getCountryName()
                 ))
                 .toList();
 
-        return new CountriesResponse(countryDtos);
+        //전체 국가 목록
+        List<CountriesResponse.CountryDto> countries = countryRepository.findAll().stream()
+                .map(country -> new CountriesResponse.CountryDto(
+                        country.getId(),
+                        country.getCountryName()
+                ))
+                .toList();
+
+        return new CountriesResponse(countries, selectedCountries);
     }
 
     // 여행지 수정하기
