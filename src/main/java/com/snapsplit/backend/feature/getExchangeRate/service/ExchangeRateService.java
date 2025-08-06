@@ -174,26 +174,38 @@ public class ExchangeRateService {
         }
     }
 
-
-    // Redis Fallback
+    // Redis 캐시 조회
     private ExchangeRateResponse getFromRedis(List<String> codes, String date) {
-        List<ExchangeRateResponse.ExchangeRateItem> cachedItems = codes.stream()
-                .map(code -> {
-                    try {
-                        String json = redisTemplate.opsForValue().get("exchange:" + code);
-                        if (json == null) throw new RuntimeException("캐시 없음: " + code);
-                        ExchangeRateResponse cached = objectMapper.readValue(json, ExchangeRateResponse.class);
-                        return cached.getRates().get(0); // 각 통화별 하나씩만 들어있음
-                    } catch (Exception e) {
-                        throw new RuntimeException("Redis 캐시 조회 실패: " + code, e);
-                    }
-                })
-                .toList();
+        List<ExchangeRateResponse.ExchangeRateItem> cachedItems = new ArrayList<>();
+        List<String> failedCodes = new ArrayList<>();
+
+        for (String code : codes) {
+            try {
+                String json = redisTemplate.opsForValue().get("exchange:" + code);
+                if (json != null) {
+                    ExchangeRateResponse cached = objectMapper.readValue(json, ExchangeRateResponse.class);
+                    cachedItems.add(cached.getRates().get(0)); // 각 통화 하나씩만 있음
+                } else {
+                    failedCodes.add(code);
+                }
+            } catch (Exception e) {
+                log.warn("Redis 캐시 조회 실패: {}", code, e);
+                failedCodes.add(code);
+            }
+        }
+
+        if (!failedCodes.isEmpty()) {
+            log.error("다음 통화들의 캐시 조회 실패: {}", failedCodes);
+            if (cachedItems.isEmpty()) {
+                throw new RuntimeException("모든 통화의 캐시 조회 실패");
+            }
+        }
 
         return ExchangeRateResponse.builder()
                 .date(date)
                 .rates(cachedItems)
                 .build();
     }
+
 
 }
