@@ -1,6 +1,7 @@
 package com.snapsplit.backend.feature.updateTotalShared.service;
 
 import com.snapsplit.backend.domain.tripcountry.repository.TripCountryRepository;
+import com.snapsplit.backend.feature.getExchangeRate.dto.ExchangeRateResponse;
 import com.snapsplit.backend.feature.getExchangeRate.service.ExchangeRateService;
 import com.snapsplit.backend.feature.updateTotalShared.dto.UpdateTotalSharedPageResponse;
 import com.snapsplit.backend.feature.updateTotalShared.dto.UpdateTotalSharedPageResponse.CurrencyRate;
@@ -36,14 +37,13 @@ public class UpdateTotalSharedPageService {
         List<String> availCurrencies = new ArrayList<>(currencySet);
 
         // 환율 정보 조회 + CurrencyRate 객체로 변환
-        List<CurrencyRate> currencies = availCurrencies.stream()
-                .map(code -> {
-                    var rateResponse = exchangeRateService.fetchExchangeRate(code);
-                    return CurrencyRate.builder()
-                            .code(code)
-                            .exchangeRate(BigDecimal.valueOf(rateResponse.getRateToKrw()))
-                            .build();
-                })
+        ExchangeRateResponse response = exchangeRateService.fetchExchangeRate(availCurrencies);
+
+        List<CurrencyRate> currencies = response.getRates().stream()
+                .map(item -> CurrencyRate.builder()
+                        .code(item.getCode())
+                        .exchangeRate(item.getRateToBase())
+                        .build())
                 .collect(Collectors.toList());
 
         // 응답 반환
