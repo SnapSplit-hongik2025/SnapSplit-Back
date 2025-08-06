@@ -12,10 +12,13 @@ import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.domain.user.repository.UserRepository;
 import com.snapsplit.backend.feature.createTrip.dto.CreateTripRequest;
+import com.snapsplit.backend.global.s3.S3Uploader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -32,20 +35,27 @@ public class CreateTripService {
     private final TripMemberRepository tripMemberRepository;
     private final TotalSharedRepository totalSharedRepository;
     private final UserRepository userRepository;
+    private final S3Uploader s3Uploader;
 
     // 신규 여행 등록하기
     @Transactional
-    public Long createTrip(CreateTripRequest request) {
+    public Long createTrip(CreateTripRequest request, MultipartFile tripImageFile) throws IOException {
 
         // 8자리 랜덤 코드 생성
         String tripCode = generateTripCode();
+
+        // 여행 대표 사진 S3 업로드
+        String tripImageUrl = null;
+        if (tripImageFile != null && !tripImageFile.isEmpty()) {
+            tripImageUrl = s3Uploader.upload(tripImageFile, "trip-images");
+        }
 
         // Trip 생성
         Trip trip = Trip.builder()
                 .tripName(request.getTripName())
                 .startDate(LocalDate.parse(request.getStartDate()))
                 .endDate(LocalDate.parse(request.getEndDate()))
-                .tripImage(request.getTripImage())
+                .tripImage(tripImageUrl)
                 .tripTotalExpense(BigDecimal.ZERO)
                 .tripCode(tripCode)
                 .defaultCurrency("KRW")
