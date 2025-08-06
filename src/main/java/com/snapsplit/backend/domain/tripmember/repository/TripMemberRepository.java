@@ -50,4 +50,8 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
     List<TripMember> findAllByTripId(Long tripId);
     
     boolean existsByTripAndUser(Trip trip, User user); // 이미 여행에 참여한 사용자인지 확인
+
+    @Query("SELECT tm FROM TripMember tm JOIN FETCH tm.user WHERE tm.trip.id = :tripId")
+    List<TripMember> findAllByTripIdWithUser(@Param("tripId") Long tripId);
+
 }

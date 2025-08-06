@@ -17,4 +17,6 @@ public interface SplitRepository extends JpaRepository<Split, Long> {
     @Query("DELETE FROM Split s WHERE s.expenseId = :expenseId")
     void deleteByExpenseId(@Param("expenseId") Long expenseId);
 
+    // 여러 개의 expenseId에 대해 Split 검색
+    List<Split> findAllByExpenseIdIn(List<Long> expenseIds);
 }

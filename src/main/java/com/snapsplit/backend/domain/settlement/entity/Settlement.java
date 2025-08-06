@@ -33,7 +33,7 @@ public class Settlement {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate; // 정산 종료일
 
-    // 정산 세부내역 1 : N 관계
     @OneToMany(mappedBy = "settlement", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<SettlementDetail> details = new ArrayList<>();
 }
