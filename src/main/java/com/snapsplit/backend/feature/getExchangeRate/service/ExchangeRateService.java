@@ -10,12 +10,8 @@ import net.minidev.json.parser.JSONParser;
 import net.minidev.json.parser.ParseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -26,7 +22,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -115,20 +110,7 @@ public class ExchangeRateService {
                     if (code.equals("JPY")) rate = rate.divide(BigDecimal.valueOf(100));
 
                     // Redis에 저장
-                    try {
-                        String json = objectMapper.writeValueAsString(ExchangeRateResponse.builder()
-                                .date(searchDate)
-                                .rates(List.of(
-                                        ExchangeRateResponse.ExchangeRateItem.builder()
-                                                .code(code)
-                                                .rateToBase(rate)
-                                                .build()))
-                                .build());
-                        redisTemplate.opsForValue().set("exchange:" + code, json, Duration.ofHours(24));
-                        log.info("Redis에 {} 저장 완료", code);
-                    } catch (Exception e) {
-                        log.warn("Redis 저장 실패: {}", code, e);
-                    }
+                    saveToRedis(code, rate, searchDate);
 
                     return ExchangeRateResponse.ExchangeRateItem.builder()
                             .code(code)
@@ -173,6 +155,25 @@ public class ExchangeRateService {
     private boolean isNonBusinessDay(LocalDate date) {
         return date.getDayOfWeek().getValue() >= 6 || holidayService.isHoliday(date);
     }
+
+    // 레디스에 저장
+    private void saveToRedis(String code, BigDecimal rate, String date) {
+        try {
+            String json = objectMapper.writeValueAsString(ExchangeRateResponse.builder()
+                    .date(date)
+                    .rates(List.of(
+                            ExchangeRateResponse.ExchangeRateItem.builder()
+                                    .code(code)
+                                    .rateToBase(rate)
+                                    .build()))
+                    .build());
+            redisTemplate.opsForValue().set("exchange:" + code, json, Duration.ofHours(24));
+            log.info("Redis에 {} 저장 완료", code);
+        } catch (Exception e) {
+            log.warn("Redis 저장 실패: {}", code, e);
+        }
+    }
+
 
     // Redis Fallback
     private ExchangeRateResponse getFromRedis(List<String> codes, String date) {
