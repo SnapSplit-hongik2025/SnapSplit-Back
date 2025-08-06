@@ -81,7 +81,7 @@ public class CreateTripService {
 
 
         // TripMember 생성 - 실제 여행 참여 유저
-        request.getMembersId().forEach(memberId -> {
+        request.getUsersId().forEach(memberId -> {
             TripMember tripMember = TripMember.builder()
                     .trip(trip)
                     .user(userRepository.findById(memberId)
