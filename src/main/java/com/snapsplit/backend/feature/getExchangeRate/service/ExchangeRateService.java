@@ -94,30 +94,34 @@ public class ExchangeRateService {
             throw new RuntimeException("JSON 파싱에 실패했습니다.", e);
         }
 
-        List<ExchangeRateResponse.ExchangeRateItem> resultRates = new ArrayList<>(upperBases.stream()
-                .filter(code -> !code.equalsIgnoreCase("KRW"))
-                .map(code -> {
-                    String unit = code.equals("JPY") ? "JPY(100)" : code;
-                    JSONObject matched = arr.stream()
-                            .map(JSONObject.class::cast)
-                            .filter(obj -> unit.equalsIgnoreCase(obj.getAsString("cur_unit")))
-                            .findFirst()
-                            .orElse(null);
+        List<ExchangeRateResponse.ExchangeRateItem> resultRates = new ArrayList<>();
 
-                    if (matched == null) throw new IllegalArgumentException("지원하지 않는 통화 코드: " + code);
+        for (String code : upperBases) {
+            if (code.equalsIgnoreCase("KRW")) continue;
 
-                    BigDecimal rate = new BigDecimal(matched.getAsString("deal_bas_r").replace(",", ""));
-                    if (code.equals("JPY")) rate = rate.divide(BigDecimal.valueOf(100));
+            String unit = code.equals("JPY") ? "JPY(100)" : code;
+            JSONObject matched = arr.stream()
+                    .map(JSONObject.class::cast)
+                    .filter(obj -> unit.equalsIgnoreCase(obj.getAsString("cur_unit")))
+                    .findFirst()
+                    .orElse(null);
 
-                    // Redis에 저장
-                    saveToRedis(code, rate, searchDate);
+            if (matched == null) throw new IllegalArgumentException("지원하지 않는 통화 코드: " + code);
 
-                    return ExchangeRateResponse.ExchangeRateItem.builder()
-                            .code(code)
-                            .rateToBase(rate)
-                            .build();
-                })
-                .toList());
+            BigDecimal rate = new BigDecimal(matched.getAsString("deal_bas_r").replace(",", ""));
+            if (code.equals("JPY")) {
+                rate = rate.divide(BigDecimal.valueOf(100));
+            }
+
+            // Redis 저장
+            saveToRedis(code, rate, searchDate);
+
+            resultRates.add(ExchangeRateResponse.ExchangeRateItem.builder()
+                    .code(code)
+                    .rateToBase(rate)
+                    .build());
+        }
+
 
         if (upperBases.contains("KRW")) {
             resultRates.add(ExchangeRateResponse.ExchangeRateItem.builder()
