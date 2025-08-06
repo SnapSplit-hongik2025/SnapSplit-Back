@@ -5,12 +5,15 @@ import com.snapsplit.backend.domain.trip.entity.Trip;
 import com.snapsplit.backend.domain.trip.repository.TripRepository;
 import com.snapsplit.backend.domain.tripcountry.entity.TripCountry;
 import com.snapsplit.backend.feature.editTrip.dto.*;
+import com.snapsplit.backend.global.s3.S3Uploader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -19,6 +22,7 @@ public class EditTripService {
 
     private final TripRepository tripRepository;
     private final CountryRepository countryRepository;
+    private final S3Uploader s3Uploader;
 
     // 수정 전 여행지 불러오기
     @Transactional(readOnly = true)
@@ -97,7 +101,24 @@ public class EditTripService {
         );
     }
 
+    // 여행명 및 대표 사진 수정하기
+    @Transactional
+    public void updateTripInfo(Long tripId, String tripName, MultipartFile tripImageFile) throws IOException {
+        Trip trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "해당 여행이 존재하지 않습니다."));
 
+        // 여행 이름 수정
+        if (tripName != null && !tripName.trim().isEmpty()) {
+            trip.setTripName(tripName);
+        }
+
+        // 대표 이미지 수정
+        if (tripImageFile != null && !tripImageFile.isEmpty()) {
+            String imageUrl = s3Uploader.upload(tripImageFile, "trip-images");
+            trip.setTripImage(imageUrl);
+        }
+    }
 
 
 
