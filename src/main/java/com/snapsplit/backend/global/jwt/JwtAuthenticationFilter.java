@@ -31,6 +31,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
 
+        System.out.println("[JwtAuthenticationFilter] Request URI: " + path);
+
         // 화이트리스트 경로는 필터 건너뛰기
         if (isWhitelisted(path)) {
             filterChain.doFilter(request, response);

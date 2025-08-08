@@ -1,6 +1,7 @@
 package com.snapsplit.backend.feature.auth.token;
 
 import com.snapsplit.backend.domain.user.entity.User;
+import com.snapsplit.backend.global.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,20 +14,18 @@ import java.util.Optional;
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
+    private final JwtUtil jwtUtil;
 
     @Transactional
-    public void save(User user, String token, LocalDateTime expiresAt) {
-        // 기존 토큰이 있는지 조회
+    public void save(User user, String token) {
+        LocalDateTime expiresAt = jwtUtil.getRefreshTokenExpiry();
         Optional<RefreshToken> existingToken = refreshTokenRepository.findByUser(user);
 
         if (existingToken.isPresent()) {
-            // 갱신 (update)
             RefreshToken refreshToken = existingToken.get();
             refreshToken.setToken(token);
             refreshToken.setExpiresAt(expiresAt);
-            // 엔티티는 변경 감지(dirty checking)로 자동 저장됨
         } else {
-            // 새로 저장 (insert)
             RefreshToken newToken = RefreshToken.builder()
                     .user(user)
                     .token(token)
@@ -37,28 +36,8 @@ public class RefreshTokenService {
     }
 
     @Transactional
-    public void deleteByUser(User user) {
-        refreshTokenRepository.deleteAllByUser(user);
-    }
-
-    @Transactional
-    public boolean deleteByToken(String token) {
-
-        Optional<RefreshToken> tokenEntity = refreshTokenRepository.findByToken(token);
-        if (tokenEntity.isPresent()) {
-            refreshTokenRepository.deleteByToken(token);
-            return true;
-        } else {
-            return false;
-        }
-
-    }
-
-    @Transactional(readOnly = true)
-    public boolean isValid(String token) {
-        return refreshTokenRepository.findByToken(token)
-                .map(rt -> !rt.isExpired())
-                .orElse(false);
+    public void deleteByToken(String token) {
+        refreshTokenRepository.deleteByToken(token);
     }
 
     @Transactional(readOnly = true)
