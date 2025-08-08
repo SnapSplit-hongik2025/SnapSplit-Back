@@ -1,6 +1,7 @@
 package com.snapsplit.backend.feature.createTrip.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import com.snapsplit.backend.feature.createTrip.dto.CreateTripRequest;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Tag(name = "여행 생성", description = "국가 목록/사용자 검색/신규 여행 등록")
 @RestController
 @RequestMapping("/trips")
 @RequiredArgsConstructor

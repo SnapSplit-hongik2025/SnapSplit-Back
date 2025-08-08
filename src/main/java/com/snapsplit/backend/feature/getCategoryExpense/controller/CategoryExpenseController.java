@@ -4,9 +4,11 @@ import com.snapsplit.backend.feature.getCategoryExpense.dto.CategoryExpenseRespo
 import com.snapsplit.backend.feature.getCategoryExpense.service.CategoryExpenseService;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "지출 통계", description = "카테고리별 지출 통계")
 @RestController
 @RequestMapping("/trips/{tripId}/statistics")
 @RequiredArgsConstructor

@@ -11,7 +11,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 
-
+@Tag(name = "개별 지출", description = "지출 추가/수정/삭제/조회")
 @RestController
 @RequestMapping("/trips/{tripId}/expense")
 @RequiredArgsConstructor

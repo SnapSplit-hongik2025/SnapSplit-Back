@@ -9,6 +9,7 @@ import com.snapsplit.backend.global.response.ApiResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+@Tag(name = "로그인/로그아웃", description = "로그인/로그아웃/토큰 재발급")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/auth")

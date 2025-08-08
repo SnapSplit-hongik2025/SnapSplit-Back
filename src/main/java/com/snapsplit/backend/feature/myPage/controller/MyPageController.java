@@ -8,6 +8,7 @@ import com.snapsplit.backend.global.response.ApiResponse;
 import com.snapsplit.backend.global.s3.S3Uploader;
 import com.snapsplit.backend.global.security.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,7 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 
-
+@Tag(name = "마이페이지", description = "마이페이지 조회/수정")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/home/myPage")

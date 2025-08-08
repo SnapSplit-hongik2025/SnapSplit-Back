@@ -5,6 +5,7 @@ import com.snapsplit.backend.feature.editTrip.service.EditTripService;
 import com.snapsplit.backend.global.aop.CheckTripMember;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
+@Tag(name = "여행 수정", description = "수정 전 정보 불러오기/수정하기/삭제하기")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/trips")

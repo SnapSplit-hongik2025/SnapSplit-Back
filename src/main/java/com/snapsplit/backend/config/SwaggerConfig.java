@@ -18,7 +18,6 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("SnapSplit API 명세서")
-                        .description("카카오 로그인 / 토큰 재발급 / 로그아웃 API 문서")
                         .version("v1"))
                 .addSecurityItem(new SecurityRequirement().addList(schemeName))
                 .components(new Components()

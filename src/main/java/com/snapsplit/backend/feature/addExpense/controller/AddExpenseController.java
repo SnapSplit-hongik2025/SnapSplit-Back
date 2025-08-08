@@ -6,6 +6,7 @@ import com.snapsplit.backend.feature.addExpense.service.AddExpenseService;
 import com.snapsplit.backend.global.aop.CheckTripMember;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import jakarta.persistence.EntityNotFoundException;
 
 import java.util.Map;
 
+@Tag(name = "개별 지출", description = "지출 추가/수정/삭제/조회")
 @RestController
 @RequestMapping("/trips/{tripId}/expense")
 @RequiredArgsConstructor

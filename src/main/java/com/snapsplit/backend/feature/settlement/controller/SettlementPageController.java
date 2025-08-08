@@ -5,9 +5,11 @@ import com.snapsplit.backend.feature.settlement.service.SettlementPageService;
 import com.snapsplit.backend.global.aop.CheckTripMember;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "정산하기", description = "정산하기/정산 영수증/정산 영수증 조회")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/trips")

@@ -4,13 +4,14 @@ import com.snapsplit.backend.feature.getExchangeRate.dto.ExchangeRateResponse;
 import com.snapsplit.backend.feature.getExchangeRate.service.ExchangeRateService;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "개별 지출", description = "지출 추가/수정/삭제/조회")
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor

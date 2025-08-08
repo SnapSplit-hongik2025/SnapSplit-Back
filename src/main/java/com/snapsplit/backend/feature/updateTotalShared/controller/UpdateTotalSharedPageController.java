@@ -6,10 +6,12 @@ import com.snapsplit.backend.feature.updateTotalShared.service.UpdateTotalShared
 import com.snapsplit.backend.global.aop.CheckTripMember;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "공동경비", description = "공동경비 조회/넣기/빼기/대표 통화 변경")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/trips/{tripId}/budget")

@@ -6,6 +6,7 @@ import com.snapsplit.backend.feature.updateTotalShared.service.RemoveTotalShared
 import com.snapsplit.backend.global.aop.CheckTripMember;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestBody;
 
+@Tag(name = "공동경비", description = "공동경비 조회/넣기/빼기/대표 통화 변경")
 @RestController
 @RequestMapping("/trips/{tripId}/budget")
 @RequiredArgsConstructor
