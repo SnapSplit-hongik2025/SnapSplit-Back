@@ -12,7 +12,7 @@ public class PastTripsResponse {
     private Integer totalTrips;
     private Integer totalCountries;
 
-    public static PastTripsResponse of(List<PastTripResponse> items, int totalTrips, int totalCountries) {
-        return new PastTripsResponse(items, totalTrips, totalCountries);
+    public static PastTripsResponse of(List<PastTripResponse> trips, int totalTrips, int totalCountries) {
+        return new PastTripsResponse(trips, totalTrips, totalCountries);
     }
 }
