@@ -38,10 +38,10 @@ public class SettlementController {
     }
 
     @Operation(summary = "정산 영수증 상세 조회", description = "정산 ID를 기반으로 정산 상세 내역을 조회합니다.")
-    @GetMapping("/{tripId}/settlement")
+    @GetMapping("/{tripId}/settlements/{settlementId}")
     @CheckTripMember
     public ApiResponse<SettlementDetailResponse> getSettlementDetails(@PathVariable Long tripId,
-                                                                      @RequestParam Long settlementId) {
+                                                                      @PathVariable Long settlementId) {
         return ApiResponse.success(
                 "정산 상세 내역 조회 성공",
                 settlementDetailService.getSettlementDetails(tripId, settlementId)
@@ -49,10 +49,10 @@ public class SettlementController {
     }
 
     @Operation(summary = "정산 영수증 개별 지출 상세 금액 조회", description = "여행 멤버 ID를 기반으로 정산 내역 상세 조회에서 개별 지출에 대한 세부 정보를 조회합니다.")
-    @GetMapping(value = "/{tripId}/settlement/expenses")
+    @GetMapping(value = "/{tripId}/settlements/{settlementId}/expenses")
     @CheckTripMember
     public ApiResponse<SettlementExpenseResponse> getSettlementExpense(@PathVariable Long tripId,
-                                                                       @RequestParam Long settlementId,
+                                                                       @PathVariable Long settlementId,
                                                                        @RequestParam Long memberId) {
         return ApiResponse.success(
                 "정산 영수증 개별 지출 상세 금액 조회 성공",
