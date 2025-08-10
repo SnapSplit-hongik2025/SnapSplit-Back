@@ -8,7 +8,7 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 public class PastTripsResponse {
-    private List<PastTripResponse> items;
+    private List<PastTripResponse> trips;
     private Integer totalTrips;
     private Integer totalCountries;
 
