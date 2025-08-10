@@ -126,7 +126,7 @@ public class SettlementExpenseService {
 
         BigDecimal totalKRW = byDate.values().stream()
                 .flatMap(List::stream)
-                .map(SettlementExpenseResponse.ExpenseItem::getAmountKRW)
+                .map(i -> Optional.ofNullable(i.getAmountKRW()).orElse(BigDecimal.ZERO))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return SettlementExpenseResponse.builder()
