@@ -32,10 +32,22 @@ public class AddExpensePageService {
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행이 존재하지 않습니다."));
 
-        // 정산일 차단: 쿼리 파라미터 date가 정산 구간에 포함되면 에러
-        boolean blocked = settlementRepository
-                .existsByTrip_IdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(tripId, date, date);
-        if (blocked) {
+        // 여행 기간 밖 접근 차단
+        LocalDate tripStart = trip.getStartDate();
+        LocalDate tripEnd   = trip.getEndDate();
+        LocalDate preTrip   = tripStart.minusDays(1);
+
+        // 여행 시작 전 날짜로 접근시 모두 preTrip로 고정
+        LocalDate effectiveDate = date.isBefore(tripStart) ? preTrip : date;
+        // 여행 종료일 이후면 400에러
+        if (effectiveDate.isAfter(tripEnd)) {
+            throw new IllegalArgumentException(
+                    "여행 기간 밖의 날짜에는 지출을 추가할 수 없습니다.");
+        }
+        // 정규화된 날짜가 정산 구간에 포함되면 400
+        boolean isSettled = settlementRepository
+                .existsByTrip_IdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(tripId, effectiveDate, effectiveDate);
+        if (isSettled) {
             throw new IllegalArgumentException("이미 정산된 날짜에는 지출을 추가할 수 없습니다.");
         }
 
@@ -82,7 +94,7 @@ public class AddExpensePageService {
                 .availCurrencies(availCurrencies)
                 .exchangeRates(exchangeRates)
                 .members(members)
-                .defaultDate(date.toString())
+                .defaultDate(effectiveDate.toString())
                 .settledDates(settledDates)
                 .build();
     }
