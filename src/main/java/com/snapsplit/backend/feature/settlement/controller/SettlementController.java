@@ -52,8 +52,8 @@ public class SettlementController {
     @GetMapping(value = "/{tripId}/settlement/expenses")
     @CheckTripMember
     public ApiResponse<SettlementExpenseResponse> getSettlementExpense(@PathVariable Long tripId,
-
-                                                                       @RequestParam Long settlementId, @RequestParam Long memberId) {
+                                                                       @RequestParam Long settlementId,
+                                                                       @RequestParam Long memberId) {
         return ApiResponse.success(
                 "정산 영수증 개별 지출 상세 금액 조회 성공",
                 settlementExpenseService.getSettlementExpense(tripId, settlementId, memberId)
