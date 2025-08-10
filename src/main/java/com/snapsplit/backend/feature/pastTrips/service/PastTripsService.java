@@ -4,6 +4,7 @@ import com.snapsplit.backend.domain.trip.entity.Trip;
 import com.snapsplit.backend.domain.tripcountry.repository.TripCountryRepository;
 import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.feature.pastTrips.dto.PastTripResponse;
+import com.snapsplit.backend.feature.pastTrips.dto.PastTripsResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -11,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,11 +20,10 @@ public class PastTripsService {
     private final TripMemberRepository tripMemberRepository;
     private final TripCountryRepository tripCountryRepository;
 
-    public List<PastTripResponse> getPastTrips(Long userId, Integer limit) {
+    // 기본 홈 지난 여행 미리보기 - limit 적용
+    public List<PastTripResponse> getPastTripsPreview(Long userId, Integer limit) {
         LocalDate today = LocalDate.now();
-
-        // limit이 지정되면 앞에서부터 limit개만 조회, 아니면 전체 조회
-        Pageable pageable = (limit != null) ? PageRequest.of(0, limit) : Pageable.unpaged();
+        var pageable = PageRequest.of(0, limit);
 
         // TripMember를 통해 userId가 참여한 Trip 중, 지난 여행(endDate < today)만 조회함
         List<Trip> trips = tripMemberRepository.findPastTripsByUserId(userId, today, pageable);
@@ -34,10 +33,33 @@ public class PastTripsService {
                     // Trip → TripCountry → Country 연관관계를 따라 국가 이름 목록 추출
                     List<String> countryNames = tripCountryRepository.findAllByTripId(trip.getId()).stream()
                             .map(tc -> tc.getCountry().getCountryName())
-                            .collect(Collectors.toList());
-
+                            .toList();
                     return PastTripResponse.from(trip, countryNames);
                 })
-                .collect(Collectors.toList());
+                .toList();
+    }
+
+    // 지난 여행 전체보기 - 전체 여행 수, 여행 국가 수 포함 envelope 반환
+    public PastTripsResponse getPastTripsWithStats(Long userId) {
+        LocalDate today = LocalDate.now();
+        // 전체 조회
+        List<Trip> trips = tripMemberRepository.findPastTripsByUserId(userId, today, Pageable.unpaged());
+
+        List<PastTripResponse> items = trips.stream()
+                .map(trip -> {
+                    List<String> countryNames = tripCountryRepository.findAllByTripId(trip.getId()).stream()
+                            .map(tc -> tc.getCountry().getCountryName())
+                            .toList();
+                    return PastTripResponse.from(trip, countryNames);
+                })
+                .toList();
+
+        int totalTrips = items.size();
+        int totalCountries = items.stream()
+                .flatMap(t -> t.getCountryNames().stream())
+                .collect(java.util.stream.Collectors.toSet())
+                .size();
+
+        return PastTripsResponse.of(items, totalTrips, totalCountries);
     }
 }

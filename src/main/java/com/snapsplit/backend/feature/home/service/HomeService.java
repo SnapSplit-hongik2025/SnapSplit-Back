@@ -23,7 +23,7 @@ public class HomeService {
     // 기본 홈 정보 조회하기
     public HomeResponse getHome(Long userId) {
         // 지난 여행: limit 5
-        List<PastTripResponse> pastTrips = pastTripsService.getPastTrips(userId, 5);
+        List<PastTripResponse> pastTrips = pastTripsService.getPastTripsPreview(userId, 5);
         List<UpcomingTripResponse> upcomingTrips = upcomingTripsService.getUpcomingTrips(userId);
         List<OngoingTripResponse> ongoingTrips = ongoingTripsService.getOngoingTrips(userId);
 
