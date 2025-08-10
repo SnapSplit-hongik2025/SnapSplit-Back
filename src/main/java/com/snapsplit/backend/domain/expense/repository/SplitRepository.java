@@ -19,4 +19,7 @@ public interface SplitRepository extends JpaRepository<Split, Long> {
 
     // 여러 개의 expenseId에 대해 Split 검색
     List<Split> findAllByExpenseIdIn(List<Long> expenseIds);
+
+    // splitterId와 여러 expenseId에 대한 split 내역 찾기
+    List<Split> findAllByExpenseIdInAndSplitterId(List<Long> expenseIds, Long splitterId);
 }
