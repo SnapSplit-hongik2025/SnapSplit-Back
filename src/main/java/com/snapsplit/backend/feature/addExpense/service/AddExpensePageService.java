@@ -32,6 +32,13 @@ public class AddExpensePageService {
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행이 존재하지 않습니다."));
 
+        // 정산일 차단: 쿼리 파라미터 date가 정산 구간에 포함되면 에러
+        boolean blocked = settlementRepository
+                .existsByTrip_IdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(tripId, date, date);
+        if (blocked) {
+            throw new IllegalArgumentException("이미 정산된 날짜에는 지출을 추가할 수 없습니다.");
+        }
+
         // 1. 대표 통화
         String defaultCurrency = trip.getDefaultCurrency();
 
