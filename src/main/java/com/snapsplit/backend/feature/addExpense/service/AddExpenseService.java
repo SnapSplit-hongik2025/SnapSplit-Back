@@ -216,7 +216,7 @@ public class AddExpenseService {
                 .amount(expense.getExpenseAmount())
                 .amountKRW(expense.getExpenseKrw())
                 .currency(expense.getExpenseCurrency())
-                .paymentMethod(expense.getPaymentMethod().toString().toLowerCase())
+                .paymentMethod(expense.getPaymentMethod().toString())
                 .date(expense.getExpenseDate())
                 .expenseName(expense.getExpenseName())
                 .expenseMemo(expense.getExpenseMemo())
@@ -281,7 +281,7 @@ public class AddExpenseService {
 
     private PaymentMethod parsePaymentMethod(String value) {
         try {
-            return PaymentMethod.valueOf(value.trim().toLowerCase());
+            return PaymentMethod.valueOf(value.trim());
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("유효하지 않은 결제 방식입니다: " + value);
         }

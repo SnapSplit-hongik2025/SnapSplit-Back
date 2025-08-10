@@ -1,9 +1,7 @@
 package com.snapsplit.backend.feature.getSharedDetails.service;
 
 import com.snapsplit.backend.domain.expense.entity.Expense;
-import com.snapsplit.backend.domain.expense.entity.Pay;
 import com.snapsplit.backend.domain.expense.repository.ExpenseRepository;
-import com.snapsplit.backend.domain.expense.repository.PayRepository;
 import com.snapsplit.backend.domain.shared.entity.Shared;
 import com.snapsplit.backend.domain.shared.entity.SharedType;
 import com.snapsplit.backend.domain.shared.repository.SharedRepository;
@@ -20,11 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.snapsplit.backend.domain.shared.entity.SharedType.WITHDRAW;
 
 @Service
 @RequiredArgsConstructor
@@ -53,7 +48,7 @@ public class GetSharedDetailsService {
                         s -> s.getCreatedAt().toString(), // 여기 s 선언됨
                         LinkedHashMap::new,
                         Collectors.mapping(s -> {
-                            String type = s.getSharedType().name().toLowerCase();
+                            String type = s.getSharedType().name();
                             String title = null;
                             String memo = null;
                             BigDecimal amount = s.getAmount();
@@ -64,25 +59,25 @@ public class GetSharedDetailsService {
                                 Expense e = expenseRepository.findById(s.getExpenseId())
                                         .orElse(null);
                                 if (e != null) {
-                                    type = SharedType.EXPENSE.name().toLowerCase();
+                                    type = SharedType.EXPENSE.name();
                                     title = e.getExpenseName();
                                     memo = e.getExpenseMemo();
                                 } else {
                                     // expense를 찾을 수 없는 경우
-                                    type = SharedType.EXPENSE.name().toLowerCase();
+                                    type = SharedType.EXPENSE.name();
                                     title = "알 수 없는 지출";
                                     memo = "";
                                 }
                             } else {
                                 // DEPOSIT인 경우
                                 if(s.getSharedType() == SharedType.DEPOSIT) {
-                                    type = SharedType.DEPOSIT.name().toLowerCase();
+                                    type = SharedType.DEPOSIT.name();
                                     title = "공동경비 입금";
                                     memo = "";
                                 }
                                 // WITHDRAW인 경우
                                 else if(s.getSharedType() == SharedType.WITHDRAW) {
-                                    type = SharedType.WITHDRAW.name().toLowerCase();
+                                    type = SharedType.WITHDRAW.name();
                                     title = "공동경비 출금";
                                     memo = "";
                                 }

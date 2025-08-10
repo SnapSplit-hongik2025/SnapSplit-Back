@@ -108,7 +108,7 @@ public class SettlementDetailService {
                                     ? "공동경비"
                                     : tm.getUser() != null ? tm.getUser().getName() : "Unknown")
                             .amount(amount)
-                            .memberType(tm.getMemberType().name().toLowerCase()) // "user" 또는 "shared_fund"
+                            .memberType(tm.getMemberType().name()) // "user" 또는 "shared_fund"
                             .build();
                 }).toList();
 
