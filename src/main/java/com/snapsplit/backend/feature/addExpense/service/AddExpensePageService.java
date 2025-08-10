@@ -1,11 +1,10 @@
 package com.snapsplit.backend.feature.addExpense.service;
 
-import com.snapsplit.backend.domain.totalshared.entity.TotalShared;
-import com.snapsplit.backend.domain.totalshared.repository.TotalSharedRepository;
+import com.snapsplit.backend.domain.settlement.entity.Settlement;
+import com.snapsplit.backend.domain.settlement.repository.SettlementRepository;
 import com.snapsplit.backend.domain.trip.entity.Trip;
 import com.snapsplit.backend.domain.trip.repository.TripRepository;
 import com.snapsplit.backend.domain.tripcountry.repository.TripCountryRepository;
-import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.feature.addExpense.dto.AddExpensePageResponse;
 import com.snapsplit.backend.feature.getExchangeRate.dto.ExchangeRateResponse;
@@ -15,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,6 +26,7 @@ public class AddExpensePageService {
     private final TripMemberRepository tripMemberRepository;
     private final TripCountryRepository tripCountryRepository;
     private final ExchangeRateService exchangeRateService;
+    private final SettlementRepository settlementRepository;
 
     public AddExpensePageResponse getAddExpensePageData(Long tripId, LocalDate date) {
         Trip trip = tripRepository.findById(tripId)
@@ -58,13 +59,33 @@ public class AddExpensePageService {
                         .build())
                 .toList();
 
-        // 5. 최종 응답 구성
+        // 5. 정산 완료 날짜 오름차순 생성
+        List<Settlement> settlements = settlementRepository.findAllByTripId(tripId);SortedSet<LocalDate> settledSet = new TreeSet<>();
+        for (Settlement s : settlements) {
+            settledSet.addAll(datesBetweenInclusive(s.getStartDate(), s.getEndDate()));
+        }
+
+        List<String> settledDates = settledSet.stream()
+                .map(LocalDate::toString)
+                .toList();
+
+        // 6. 최종 응답 구성
         return AddExpensePageResponse.builder()
                 .defaultCurrency(defaultCurrency)
                 .availCurrencies(availCurrencies)
                 .exchangeRates(exchangeRates)
                 .members(members)
                 .defaultDate(date.toString())
+                .settledDates(settledDates)
                 .build();
+    }
+
+    // [start, end] 포함 범위 날짜 리스트
+    private List<LocalDate> datesBetweenInclusive(LocalDate start, LocalDate end) {
+        if (start == null || end == null || start.isAfter(end)) return List.of();
+        long days = ChronoUnit.DAYS.between(start, end);
+        List<LocalDate> out = new ArrayList<>((int) days + 1);
+        for (long i = 0; i <= days; i++) out.add(start.plusDays(i));
+        return out;
     }
 }

@@ -12,7 +12,8 @@ public record AddExpensePageResponse(
         List<String> availCurrencies,
         Map<String, BigDecimal> exchangeRates,
         String defaultDate,
-        List<MemberDto> members
+        List<MemberDto> members,
+        List<String> settledDates
 ) {
 
     @Builder
