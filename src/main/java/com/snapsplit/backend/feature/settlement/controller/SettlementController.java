@@ -42,6 +42,7 @@ public class SettlementController {
     @CheckTripMember
     public ApiResponse<SettlementDetailResponse> getSettlementDetails(@PathVariable Long tripId,
                                                                       @PathVariable Long settlementId) {
+
         return ApiResponse.success(
                 "정산 상세 내역 조회 성공",
                 settlementDetailService.getSettlementDetails(tripId, settlementId)

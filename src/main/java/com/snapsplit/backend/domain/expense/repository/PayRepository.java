@@ -22,4 +22,7 @@ public interface PayRepository extends JpaRepository<Pay, Long> {
 
     // 여러 개의 expenseId에 대해서 Pay 검색
     List<Pay> findAllByExpenseIdIn(List<Long> expenseIds);
+
+    // payId와 여러 expenseId에 대한 pay 내역 찾기
+    List<Pay> findAllByExpenseIdInAndPayerId(List<Long> expenseIds, Long payerId);
 }
