@@ -63,7 +63,7 @@ public class SettlementExpenseService {
                 .collect(Collectors.toMap(Expense::getId, e -> e));
         List<Long> expenseIds = expenses.stream().map(Expense::getId).toList();
 
-        Map<LocalDate, List<SettlementExpenseResponse.ExpenseItem>> byDate = new HashMap<>();
+        Map<LocalDate, List<SettlementExpenseResponse.ExpenseItem>> byDate = new TreeMap<>();
 
         if (member.getMemberType() == MemberType.SHARED_FUND) {
             // 공동경비 멤버: Split이 아니라 Pay에서 조회
@@ -82,8 +82,8 @@ public class SettlementExpenseService {
                 SettlementExpenseResponse.ExpenseItem item = SettlementExpenseResponse.ExpenseItem.builder()
                         .expenseName(Optional.ofNullable(ex.getExpenseName()).orElse(""))
                         .expenseMemo(Optional.ofNullable(ex.getExpenseMemo()).orElse(""))
-                        .amount(p.getPayAmount())            // 부호 정책: 현재 그대로 노출
-                        .amountKRW(p.getPayAmountKrw())      // 필요시 .negate()로 변경 가능
+                        .amount(Optional.ofNullable(p.getPayAmount()).orElse(BigDecimal.ZERO))            // 부호 정책: 현재 그대로 노출
+                        .amountKRW(Optional.ofNullable(p.getPayAmountKrw()).orElse(BigDecimal.ZERO))      // 필요시 .negate()로 변경 가능
                         .expenseCurrency(ex.getExpenseCurrency())
                         .build();
 
@@ -107,8 +107,8 @@ public class SettlementExpenseService {
                 SettlementExpenseResponse.ExpenseItem item = SettlementExpenseResponse.ExpenseItem.builder()
                         .expenseName(Optional.ofNullable(ex.getExpenseName()).orElse(""))
                         .expenseMemo(Optional.ofNullable(ex.getExpenseMemo()).orElse(""))
-                        .amount(s.getSplitAmount())          // 부호 정책: 현재 그대로 노출
-                        .amountKRW(s.getSplitAmountKrw())    // 필요시 .negate()로 변경 가능
+                        .amount(Optional.ofNullable(s.getSplitAmount()).orElse(BigDecimal.ZERO))          // 부호 정책: 현재 그대로 노출
+                        .amountKRW(Optional.ofNullable(s.getSplitAmountKrw()).orElse(BigDecimal.ZERO))    // 필요시 .negate()로 변경 가능
                         .expenseCurrency(ex.getExpenseCurrency())
                         .build();
 
