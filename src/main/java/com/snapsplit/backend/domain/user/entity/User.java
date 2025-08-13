@@ -27,6 +27,10 @@ public class User {
     @Column(name = "profile_image", length = 255)
     private String profileImage;
 
+    @Setter
+    @Column(name = "aws_face_id", length = 100, unique = true)
+    private String awsFaceId;
+
     @Column(name = "user_code", length = 50, unique = true, nullable = false)
     private String userCode;
 
