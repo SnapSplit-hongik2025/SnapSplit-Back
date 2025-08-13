@@ -49,7 +49,7 @@ public class RemoveTotalSharedService {
                 .trip(trip)
                 .amount(request.getAmount().negate()) // 음수 처리
                 .amountKRW(amountKRW.negate())
-                .currency(request.getCurrency())
+                .currency(request.getCurrency().toUpperCase())
                 .paymentMethod(request.getPaymentMethod())
                 .sharedType(SharedType.WITHDRAW)
                 .createdAt(request.getCreatedAt())
