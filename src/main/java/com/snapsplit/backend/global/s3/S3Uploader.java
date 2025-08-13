@@ -3,10 +3,16 @@ package com.snapsplit.backend.global.s3;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import java.io.IOException;
+
+import com.snapsplit.backend.config.properties.AwsProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
 import java.util.UUID;
 
 
@@ -14,20 +20,33 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class S3Uploader {
 
-    private final AmazonS3 amazonS3;
+    private final S3Client s3Client;
+    private final AwsProperties awsProperties;
 
-    @Value("${cloud.aws.s3.bucket}")
-    private String bucket;
+    public String upload(MultipartFile multipartFile, String dirName) throws IOException {
+        // 1. S3 버킷 이름 가져오기
+        String bucket = awsProperties.getS3().getBucket();
 
-    public String upload(MultipartFile file, String dirName) throws IOException {
-        String fileName = dirName + "/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
+        // 2. 파일 이름 생성 (중복 방지를 위해 UUID 사용)
+        String originalFilename = multipartFile.getOriginalFilename();
+        String uniqueFilename = UUID.randomUUID().toString() + "_" + originalFilename;
 
-        ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentLength(file.getSize());
-        metadata.setContentType(file.getContentType());
+        // 3. S3에 저장될 파일의 전체 경로 (키) 생성
+        String key = dirName + "/" + uniqueFilename;
 
-        amazonS3.putObject(bucket, fileName, file.getInputStream(), metadata);
+        // 4. S3 업로드 요청 객체 생성 (V2 방식)
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .contentType(multipartFile.getContentType())
+                .contentLength(multipartFile.getSize())
+                .build();
 
-        return amazonS3.getUrl(bucket, fileName).toString(); // URL 반환
+        // 5. 파일 업로드 실행
+        s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(multipartFile.getInputStream(), multipartFile.getSize()));
+
+        // 6. 업로드된 파일의 URL 반환
+        return s3Client.utilities().getUrl(builder -> builder.bucket(bucket).key(key)).toExternalForm();
     }
+
 }

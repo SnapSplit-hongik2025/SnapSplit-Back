@@ -42,6 +42,12 @@ dependencies {
 
     implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 
+    //aws sdk v2 의존성 관리
+    implementation platform('software.amazon.awssdk:bom:2.25.16')
+
+    //aws 서비스 모듈
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:rekognition'
 }
 
 tasks.named('test') {
