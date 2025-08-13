@@ -3,6 +3,7 @@ package com.snapsplit.backend.feature.face.service;
 import com.snapsplit.backend.config.properties.AwsProperties;
 import com.snapsplit.backend.domain.user.entity.User;
 import com.snapsplit.backend.domain.user.repository.UserRepository;
+import com.snapsplit.backend.global.security.SecurityUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,9 +21,10 @@ public class FaceService {
     private final UserRepository userRepository;
     private final RekognitionClient rekognitionClient;
     private final AwsProperties awsProperties;
+    private final SecurityUtil securityUtil;
 
     @Transactional
-    public void registerFace(Long userId, MultipartFile faceImage) throws IOException {
+    public void registerFace(MultipartFile faceImage) throws IOException {
 
         long fileSize = faceImage.getSize();
         long maxSize = 5 * 1024 * 1024; // 5MB
@@ -32,8 +34,10 @@ public class FaceService {
         }
 
         // 1. 사용자 정보 조회
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("해당 유저를 찾을 수 없습니다. ID: " + userId));
+        Long currentUserId = securityUtil.getCurrentUserId();
+
+        User user = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new EntityNotFoundException("해당 유저를 찾을 수 없습니다. ID: " + currentUserId));
 
         // 2. 이미 등록된 얼굴이 있는지 확인
         if (user.getAwsFaceId() != null && !user.getAwsFaceId().isEmpty()) {
@@ -59,10 +63,12 @@ public class FaceService {
     }
 
     @Transactional
-    public void deleteFace(Long userId) {
+    public void deleteFace() {
         // 1. 사용자 정보 조회
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("해당 유저를 찾을 수 없습니다. ID: " + userId));
+        Long currentUserId = securityUtil.getCurrentUserId();
+
+        User user = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new EntityNotFoundException("해당 유저를 찾을 수 없습니다. ID: " + currentUserId));
 
         String faceId = user.getAwsFaceId();
 
@@ -81,7 +87,6 @@ public class FaceService {
 
         // 4. DB에서 FaceId 정보 삭제
         user.setAwsFaceId(null);
-
 
         // Todo : 얼굴 정보 삭제 시, 이전에 해당 얼굴로 태그되었던 PhotoTag들 처리 추가하기
     }
