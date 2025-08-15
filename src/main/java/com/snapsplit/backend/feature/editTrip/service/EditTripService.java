@@ -6,6 +6,7 @@ import com.snapsplit.backend.domain.trip.repository.TripRepository;
 import com.snapsplit.backend.domain.tripcountry.entity.TripCountry;
 import com.snapsplit.backend.feature.editTrip.dto.*;
 import com.snapsplit.backend.global.s3.S3Uploader;
+import com.snapsplit.backend.global.s3.dto.S3UploadResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -124,8 +125,8 @@ public class EditTripService {
 
         // 대표 이미지 수정
         if (tripImageFile != null && !tripImageFile.isEmpty()) {
-            String imageUrl = s3Uploader.upload(tripImageFile, "trip-images");
-            trip.setTripImage(imageUrl);
+            S3UploadResult uploadResult = s3Uploader.upload(tripImageFile, "trip-cover");
+            trip.setTripImage(uploadResult.getFileUrl());
         }
     }
 

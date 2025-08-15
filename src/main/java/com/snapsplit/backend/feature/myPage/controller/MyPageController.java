@@ -6,6 +6,7 @@ import com.snapsplit.backend.feature.myPage.service.MyPageService;
 import com.snapsplit.backend.domain.user.entity.User;
 import com.snapsplit.backend.global.response.ApiResponse;
 import com.snapsplit.backend.global.s3.S3Uploader;
+import com.snapsplit.backend.global.s3.dto.S3UploadResult;
 import com.snapsplit.backend.global.security.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -59,7 +60,8 @@ public class MyPageController {
 
         String profileImageUrl = null;
         if (profileImage != null && !profileImage.isEmpty()) {
-            profileImageUrl = s3Uploader.upload(profileImage, "profile");
+            S3UploadResult uploadResult = s3Uploader.upload(profileImage, "profile");
+            profileImageUrl = uploadResult.getFileUrl();
         }
 
         myPageService.updateProfile(user, name, profileImageUrl);

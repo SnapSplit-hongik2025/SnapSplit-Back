@@ -22,8 +22,8 @@ public class Album {
     @Column(name = "album_id")
     private Long id;
 
-    @Column(name = "name", length = 100, nullable = false)
-    private String name;
+    //@Column(name = "name", length = 100, nullable = false)
+    //private String name;
 
     // Album은 하나의 Trip에 속합니다. (1:1 관계)
     @OneToOne(fetch = FetchType.LAZY)
@@ -35,8 +35,7 @@ public class Album {
     private List<Photo> photos = new ArrayList<>();
 
     @Builder
-    public Album(String name, Trip trip) {
-        this.name = name;
+    public Album(Trip trip) {
         this.trip = trip;
     }
 }

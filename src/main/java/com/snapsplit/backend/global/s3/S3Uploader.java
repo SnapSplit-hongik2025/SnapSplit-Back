@@ -1,12 +1,11 @@
 package com.snapsplit.backend.global.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import java.io.IOException;
-
+import com.snapsplit.backend.global.s3.dto.S3UploadResult;
 import com.snapsplit.backend.config.properties.AwsProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -16,14 +15,14 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import java.util.UUID;
 
 
-@Service
+@Component
 @RequiredArgsConstructor
 public class S3Uploader {
 
     private final S3Client s3Client;
     private final AwsProperties awsProperties;
 
-    public String upload(MultipartFile multipartFile, String dirName) throws IOException {
+    public S3UploadResult upload(MultipartFile multipartFile, String dirName) throws IOException {
         // 1. S3 버킷 이름 가져오기
         String bucket = awsProperties.getS3().getBucket();
 
@@ -46,7 +45,8 @@ public class S3Uploader {
         s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(multipartFile.getInputStream(), multipartFile.getSize()));
 
         // 6. 업로드된 파일의 URL 반환
-        return s3Client.utilities().getUrl(builder -> builder.bucket(bucket).key(key)).toExternalForm();
+        String url = s3Client.utilities().getUrl(builder -> builder.bucket(bucket).key(key)).toExternalForm();
+        return new S3UploadResult(key, url);
     }
 
 }
