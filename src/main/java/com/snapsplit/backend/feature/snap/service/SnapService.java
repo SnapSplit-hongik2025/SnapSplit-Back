@@ -7,7 +7,6 @@ import com.snapsplit.backend.domain.photo.entity.Photo;
 import com.snapsplit.backend.domain.photo.repository.PhotoRepository;
 import com.snapsplit.backend.domain.phototag.entity.PhotoTag;
 import com.snapsplit.backend.domain.phototag.repository.PhotoTagRepository;
-import com.snapsplit.backend.domain.trip.repository.TripRepository;
 import com.snapsplit.backend.domain.tripmember.entity.MemberType;
 import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.domain.user.repository.UserRepository;
@@ -20,12 +19,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.rekognition.RekognitionClient;
 import software.amazon.awssdk.services.rekognition.model.*;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.awt.image.RasterFormatException;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -37,80 +41,158 @@ public class SnapService {
     private final PhotoTagRepository photoTagRepository;
     private final UserRepository userRepository;
     private final TripMemberRepository tripMemberRepository;
-    private final AlbumRepository albumRepository; // Trip에 연결된 Album을 찾기 위함
+    private final AlbumRepository albumRepository;
     private final S3Uploader s3Uploader;
     private final RekognitionClient rekognitionClient;
     private final AwsProperties awsProperties;
 
     @Transactional
     public List<UploadPhotoResponse> uploadAndTagPhotos(Long tripId, List<MultipartFile> images) {
-        // 1. tripId로 Album 찾기
         Album album = albumRepository.findByTripId(tripId)
                 .orElseThrow(() -> new EntityNotFoundException("해당 여행의 앨범을 찾을 수 없습니다."));
 
-        // 검색할 최대 얼굴 수 설정 (멤버가 없으면 기본값 10으로 설정)
         int memberCount = tripMemberRepository.countByTrip_IdAndMemberType(tripId, MemberType.USER);
         int maxFacesToDetect = (memberCount > 0) ? memberCount : 10;
-        log.info("Attempting to find max {} faces for tripId {}.", maxFacesToDetect, tripId);
+        //log.info("Attempting to find max {} faces for tripId {}.", maxFacesToDetect, tripId);
 
-        List<UploadPhotoResponse> responses = new ArrayList<>();
-
-        for (MultipartFile image : images) {
-            try {
-                // 2. S3에 이미지 업로드
-                S3UploadResult uploadResult = s3Uploader.upload(image, "photos");
-                String s3Url = uploadResult.getFileUrl();
-                String s3Key = uploadResult.getFileKey();
-
-                // 3. Photo 엔티티 생성 및 DB 저장
-                Photo photo = Photo.builder().album(album).s3Url(s3Url).build();
-                Photo savedPhoto = photoRepository.save(photo);
-
-                // --- [디버깅 로그 추가 시작] ---
-                log.info("===== [Photo: {}] 분석 시작 =====", image.getOriginalFilename());
-                log.info("Rekognition 요청: maxFaces = {}", maxFacesToDetect);
-
-                // 4. Rekognition으로 얼굴 검색
-                SearchFacesByImageRequest searchRequest = SearchFacesByImageRequest.builder()
-                        .collectionId(awsProperties.getRekognition().getCollectionId())
-                        .image(Image.builder().s3Object(
-                                S3Object.builder()
-                                        .bucket(awsProperties.getS3().getBucket())
-                                        .name(s3Key)
-                                        .build()
-                        ).build())
-                        .faceMatchThreshold(90F)
-                        .maxFaces(maxFacesToDetect)
-                        .build();
-                SearchFacesByImageResponse searchResponse = rekognitionClient.searchFacesByImage(searchRequest);
-
-                // Rekognition 응답을 직접 확인하는 가장 중요한 로그
-                log.info("Rekognition 응답: 찾은 얼굴 수 = {}", searchResponse.faceMatches().size());
-                searchResponse.faceMatches().forEach(faceMatch -> {
-                    log.info(" -> 매칭된 FaceId: {}, 유사도: {}", faceMatch.face().faceId(), faceMatch.similarity());
-                });
-                // --- [디버깅 로그 추가 끝] ---
-
-                // 5. 매칭된 얼굴로 PhotoTag 생성 및 저장
-                List<UploadPhotoResponse.TaggedUser> taggedUsers = searchResponse.faceMatches().stream()
-                        .flatMap(faceMatch -> userRepository.findByAwsFaceId(faceMatch.face().faceId()).stream())
-                        .map(user -> {
-                            photoTagRepository.save(new PhotoTag(savedPhoto, user));
-                            return UploadPhotoResponse.TaggedUser.builder()
-                                    .userId(user.getId()).userName(user.getName()).build();
-                        })
-                        .collect(Collectors.toList());
-
-                // 6. 최종 응답 객체 생성
-                responses.add(UploadPhotoResponse.builder()
-                        .photoId(savedPhoto.getId()).photoUrl(s3Url).taggedUsers(taggedUsers).build());
-
-            } catch (IOException e) {
-                //log.error("파일 처리 중 오류 발생: {}", image.getOriginalFilename(), e);
-            }
-        }
-        return responses;
+        return images.stream()
+                .map(image -> processSingleImage(album, image, maxFacesToDetect))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
-    // Todo: 사진 삭제, 목록 조회, 폴더 조회 등 다른 서비스 메소드 구현
+
+    // 단일 이미지를 처리하는 전체 과정을 담당
+    private UploadPhotoResponse processSingleImage(Album album, MultipartFile imageFile, int maxFacesToDetect) {
+        try {
+            // 1. S3 업로드 및 Photo 엔티티 저장
+            S3UploadResult uploadResult = s3Uploader.upload(imageFile, "photos");
+            Photo savedPhoto = photoRepository.save(
+                    Photo.builder().album(album).s3Url(uploadResult.getFileUrl()).build()
+            );
+            log.info("===== [Photo: {}] 분석 시작 =====", imageFile.getOriginalFilename());
+
+            // 2. 원본 이미지에서 모든 얼굴 위치 검출
+            List<FaceDetail> faceDetails = detectFacesFromS3Image(uploadResult.getFileKey());
+            if (faceDetails.isEmpty()) {
+                log.info("DetectFaces: 사진에서 얼굴을 검출하지 못했습니다.");
+                return createUploadResponse(savedPhoto, Collections.emptyList());
+            }
+
+            // 3. 검출된 각 얼굴을 검색하여 태그 생성
+            List<UploadPhotoResponse.TaggedUser> taggedUsers = identifyAndTagFaces(savedPhoto, uploadResult.getFileKey(), faceDetails, maxFacesToDetect);
+
+            log.info("===== [Photo: {}] 분석 완료, 최종 태그된 유저 수 = {} =====", imageFile.getOriginalFilename(), taggedUsers.size());
+            return createUploadResponse(savedPhoto, taggedUsers);
+
+        } catch (IOException e) {
+            log.error("파일 처리 중 오류 발생: {}", imageFile.getOriginalFilename(), e);
+            return null;
+        }
+    }
+
+     // S3에 저장된 이미지에서 모든 얼굴의 위치를 검출합니다.
+    private List<FaceDetail> detectFacesFromS3Image(String s3Key) {
+        DetectFacesRequest detectRequest = DetectFacesRequest.builder()
+                .image(Image.builder().s3Object(
+                        S3Object.builder()
+                                .bucket(awsProperties.getS3().getBucket())
+                                .name(s3Key)
+                                .build()
+                ).build())
+                .attributes(Attribute.DEFAULT)
+                .build();
+        DetectFacesResponse detectResp = rekognitionClient.detectFaces(detectRequest);
+        log.info("DetectFaces 응답: 검출한 얼굴 수 = {}", detectResp.faceDetails().size());
+        return detectResp.faceDetails();
+    }
+
+
+     // 검출된 얼굴들을 하나씩 잘라내어 검색하고, 일치하는 사용자를 태그
+    private List<UploadPhotoResponse.TaggedUser> identifyAndTagFaces(Photo photo, String s3Key, List<FaceDetail> faceDetails, int maxFacesToDetect) throws IOException {
+        BufferedImage originalImage = downloadImageFromS3(s3Key);
+        if (originalImage == null) return Collections.emptyList();
+
+        Set<Long> taggedUserIds = new HashSet<>(); // 한 사진에 동일 인물 중복 태깅 방지
+
+        return faceDetails.stream()
+                .map(faceDetail -> cropAndSearchFace(originalImage, faceDetail, maxFacesToDetect))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .flatMap(List::stream)
+                .map(faceMatch -> userRepository.findByAwsFaceId(faceMatch.face().faceId()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .filter(user -> taggedUserIds.add(user.getId())) // 중복되지 않은 경우에만 통과
+                .map(user -> {
+                    photoTagRepository.save(new PhotoTag(photo, user));
+                    return UploadPhotoResponse.TaggedUser.builder()
+                            .userId(user.getId()).userName(user.getName()).build();
+                })
+                .collect(Collectors.toList());
+    }
+
+     //단일 얼굴을 잘라내어 Rekognition으로 검색
+    private Optional<List<FaceMatch>> cropAndSearchFace(BufferedImage originalImage, FaceDetail faceDetail, int maxFacesToDetect) {
+        try {
+            BoundingBox bb = faceDetail.boundingBox();
+            int W = originalImage.getWidth();
+            int H = originalImage.getHeight();
+
+            int x = Math.max(0, (int) Math.round(bb.left() * W));
+            int y = Math.max(0, (int) Math.round(bb.top() * H));
+            int w = Math.max(1, Math.min((int) Math.round(bb.width() * W), W - x));
+            int h = Math.max(1, Math.min((int) Math.round(bb.height() * H), H - y));
+
+            BufferedImage croppedImage = originalImage.getSubimage(x, y, w, h);
+
+            if (croppedImage.getWidth() < 40 || croppedImage.getHeight() < 40) {
+                log.warn("검출된 얼굴이 너무 작아서 건너뜁니다. (Size: {}x{})", croppedImage.getWidth(), croppedImage.getHeight());
+                return Optional.empty();
+            }
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(croppedImage, "jpg", baos);
+            byte[] faceBytes = baos.toByteArray();
+
+            SearchFacesByImageRequest searchRequest = SearchFacesByImageRequest.builder()
+                    .collectionId(awsProperties.getRekognition().getCollectionId())
+                    .image(Image.builder().bytes(SdkBytes.fromByteArray(faceBytes)).build())
+                    .faceMatchThreshold(80F)
+                    .maxFaces(1) // 잘라낸 얼굴 하나에 대해 가장 일치하는 사람 1명만 찾으면 됨
+                    .build();
+
+            SearchFacesByImageResponse searchResponse = rekognitionClient.searchFacesByImage(searchRequest);
+            log.info("SearchFaces 응답(얼굴 1개): 찾은 매칭 수 = {}", searchResponse.faceMatches().size());
+            return Optional.of(searchResponse.faceMatches());
+
+        } catch (IOException | RasterFormatException | InvalidParameterException e) {
+            log.warn("개별 얼굴 처리 중 오류 발생: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+
+     // S3에서 이미지를 다운로드하여 BufferedImage 객체로 반환
+    private BufferedImage downloadImageFromS3(String s3Key) throws IOException {
+        try (var s3obj = s3Uploader.getS3Client().getObject(
+                GetObjectRequest.builder()
+                        .bucket(awsProperties.getS3().getBucket())
+                        .key(s3Key)
+                        .build())) {
+            return ImageIO.read(s3obj);
+        } catch (IOException e) {
+            log.error("S3에서 이미지를 읽어오지 못했습니다. Key: {}", s3Key, e);
+            throw e;
+        }
+    }
+
+    //최종 응답 DTO 생성
+    private UploadPhotoResponse createUploadResponse(Photo photo, List<UploadPhotoResponse.TaggedUser> taggedUsers) {
+        return UploadPhotoResponse.builder()
+                .photoId(photo.getId())
+                .photoUrl(photo.getS3Url())
+                .taggedUsers(taggedUsers)
+                .build();
+    }
 }

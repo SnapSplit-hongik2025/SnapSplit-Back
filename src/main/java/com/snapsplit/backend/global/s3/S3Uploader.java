@@ -49,4 +49,8 @@ public class S3Uploader {
         return new S3UploadResult(key, url);
     }
 
+    public S3Client getS3Client() {
+        return this.s3Client;
+    }
+
 }
