@@ -51,7 +51,7 @@ public class CreateTripService {
         // 여행 대표 사진 S3 업로드
         String tripImageUrl = null;
         if (tripImageFile != null && !tripImageFile.isEmpty()) {
-            S3UploadResult uploadResult = s3Uploader.upload(tripImageFile, "trip-cover");
+            S3UploadResult uploadResult = s3Uploader.upload(tripImageFile, "trip-images");
             tripImageUrl = uploadResult.getFileUrl();
         }
 

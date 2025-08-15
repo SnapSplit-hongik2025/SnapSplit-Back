@@ -125,7 +125,7 @@ public class EditTripService {
 
         // 대표 이미지 수정
         if (tripImageFile != null && !tripImageFile.isEmpty()) {
-            S3UploadResult uploadResult = s3Uploader.upload(tripImageFile, "trip-cover");
+            S3UploadResult uploadResult = s3Uploader.upload(tripImageFile, "trip-images");
             trip.setTripImage(uploadResult.getFileUrl());
         }
     }
