@@ -56,4 +56,5 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
     List<TripMember> findAllByTripIdWithUser(@Param("tripId") Long tripId);
 
     int countByTrip_IdAndMemberType(Long tripId, MemberType memberType);
+    List<TripMember> findAllByIdInAndTrip_Id(List<Long> ids, Long tripId);
 }

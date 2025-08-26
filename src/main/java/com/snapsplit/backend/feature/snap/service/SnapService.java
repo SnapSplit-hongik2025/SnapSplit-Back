@@ -8,8 +8,10 @@ import com.snapsplit.backend.domain.photo.repository.PhotoRepository;
 import com.snapsplit.backend.domain.phototag.entity.PhotoTag;
 import com.snapsplit.backend.domain.phototag.repository.PhotoTagRepository;
 import com.snapsplit.backend.domain.tripmember.entity.MemberType;
+import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.domain.user.repository.UserRepository;
+import com.snapsplit.backend.feature.snap.dto.UpdatePhotoTagRequest;
 import com.snapsplit.backend.feature.snap.dto.UploadPhotoResponse;
 import com.snapsplit.backend.global.s3.S3Uploader;
 import com.snapsplit.backend.global.s3.dto.S3UploadResult;
@@ -50,6 +52,7 @@ public class SnapService {
     private final RekognitionClient rekognitionClient;
     private final AwsProperties awsProperties;
 
+    // 여행 사진 업로드 및 자동 태깅
     @Transactional
     public List<UploadPhotoResponse> uploadAndTagPhotos(Long tripId, List<MultipartFile> images) {
         Album album = albumRepository.findByTripId(tripId)
@@ -95,7 +98,7 @@ public class SnapService {
         }
     }
 
-     // S3에 저장된 이미지에서 모든 얼굴의 위치를 검출합니다.
+    // S3에 저장된 이미지에서 모든 얼굴의 위치를 검출
     private List<FaceDetail> detectFacesFromS3Image(String s3Key) {
         DetectFacesRequest detectRequest = DetectFacesRequest.builder()
                 .image(Image.builder().s3Object(
@@ -200,6 +203,10 @@ public class SnapService {
                 .build();
     }
 
+
+    // =========================================================
+
+    // 여행 사진 삭제
     @Transactional
     public void deletePhotos(Long tripId, List<Long> photoIds) {
         // 1. tripId에 속한 photoId인지 확인 후 가져옴
@@ -238,4 +245,48 @@ public class SnapService {
         // 5. DB에서 Photo 엔티티들을 삭제
         photoRepository.deleteAll(photosToDelete);
     }
+
+
+    // 여행 사진 태그 수정(기존 태그 삭제 후 다시 생성)
+    @Transactional
+    public UploadPhotoResponse updatePhotoTags(Long tripId, Long photoId, UpdatePhotoTagRequest request) {
+        // 1. 사진 조회 (photoId와 tripId가 모두 일치하는지 확인)
+        Photo photo = photoRepository.findByIdAndAlbum_Trip_Id(photoId, tripId)
+                .orElseThrow(() -> new EntityNotFoundException("해당 여행에 존재하지 않는 사진입니다."));
+
+        // 2. 기존 태그 일괄 삭제
+        photoTagRepository.deleteAllByPhotoId(photoId);
+
+        List<Long> memberIds = request.getMemberIds();
+
+        // 3. 요청된 memberId가 없다면 빈 태그 목록으로 응답
+        if (memberIds == null || memberIds.isEmpty()) {
+            return createUploadResponse(photo, Collections.emptyList());
+        }
+
+        // 4. 새로운 TripMember 조회 (memberIds와 tripId로 소속 검증)
+        List<TripMember> tripMembers = tripMemberRepository.findAllByIdInAndTrip_Id(memberIds, tripId);
+
+        // 요청된 memberId 개수와 실제 조회된 tripMember 개수가 다르면 잘못된 요청
+        if (memberIds.size() != tripMembers.size()) {
+            throw new IllegalArgumentException("요청된 멤버 ID 중 일부가 해당 여행에 속하지 않습니다.");
+        }
+
+        // 5. 새로운 PhotoTag 생성 및 저장
+        List<PhotoTag> newPhotoTags = tripMembers.stream()
+                .map(tripMember -> new PhotoTag(photo, tripMember.getUser()))
+                .collect(Collectors.toList());
+        photoTagRepository.saveAll(newPhotoTags);
+
+        // 6. 최종 응답 DTO 생성
+        List<UploadPhotoResponse.TaggedUser> taggedUsers = tripMembers.stream()
+                .map(tripMember -> UploadPhotoResponse.TaggedUser.builder()
+                        .userId(tripMember.getUser().getId())
+                        .userName(tripMember.getUser().getName())
+                        .build())
+                .collect(Collectors.toList());
+
+        return createUploadResponse(photo, taggedUsers);
+    }
+
 }
