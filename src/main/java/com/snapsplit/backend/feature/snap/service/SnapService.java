@@ -29,6 +29,10 @@ import java.awt.image.BufferedImage;
 import java.awt.image.RasterFormatException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -209,11 +213,20 @@ public class SnapService {
         // 2. S3에서 삭제할 파일 키(key) 목록을 추출
         List<String> s3KeysToDelete = photosToDelete.stream()
                 .map(photo -> {
-                    // S3 URL에서 파일 키(경로+파일명)를 파싱하는 로직
-                    // "https://bucket.s3.region.amazonaws.com/photos/filename.jpg" -> "photos/filename.jpg"
-                    String url = photo.getS3Url();
-                    return url.substring(url.indexOf(".com/") + 5);
+                    try {
+                        String fullUrl = photo.getS3Url();
+                        String pathWithSlash = new java.net.URL(fullUrl).getPath();
+                        String keyWithEncoding = pathWithSlash.substring(1);
+
+                        //UTF-8 형식으로 명시적으로 디코딩
+                        return URLDecoder.decode(keyWithEncoding, StandardCharsets.UTF_8);
+
+                    } catch (Exception e) {
+                        log.error("S3 URL 처리 중 오류 발생: {}", photo.getS3Url(), e);
+                        return null;
+                    }
                 })
+                .filter(java.util.Objects::nonNull)
                 .toList();
 
         // 3. S3에 있는 파일들을 삭제 (개별 삭제)
