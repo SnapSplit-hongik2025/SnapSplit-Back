@@ -139,10 +139,10 @@ public class SnapService {
             int W = originalImage.getWidth();
             int H = originalImage.getHeight();
 
-            int x = Math.max(0, (int) Math.round(bb.left() * W));
-            int y = Math.max(0, (int) Math.round(bb.top() * H));
-            int w = Math.max(1, Math.min((int) Math.round(bb.width() * W), W - x));
-            int h = Math.max(1, Math.min((int) Math.round(bb.height() * H), H - y));
+            int x = Math.max(0, Math.round(bb.left() * W));
+            int y = Math.max(0, Math.round(bb.top() * H));
+            int w = Math.max(1, Math.min(Math.round(bb.width() * W), W - x));
+            int h = Math.max(1, Math.min(Math.round(bb.height() * H), H - y));
 
             BufferedImage croppedImage = originalImage.getSubimage(x, y, w, h);
 
@@ -194,5 +194,35 @@ public class SnapService {
                 .photoUrl(photo.getS3Url())
                 .taggedUsers(taggedUsers)
                 .build();
+    }
+
+    @Transactional
+    public void deletePhotos(Long tripId, List<Long> photoIds) {
+        // 1. tripId에 속한 photoId인지 확인 후 가져옴
+        List<Photo> photosToDelete = photoRepository.findAllByIdInAndAlbum_Trip_Id(photoIds, tripId);
+
+        if (photosToDelete.isEmpty()) {
+            // 삭제할 사진이 없거나, 유효하지 않은 요청일 경우 종료
+            return;
+        }
+
+        // 2. S3에서 삭제할 파일 키(key) 목록을 추출
+        List<String> s3KeysToDelete = photosToDelete.stream()
+                .map(photo -> {
+                    // S3 URL에서 파일 키(경로+파일명)를 파싱하는 로직
+                    // "https://bucket.s3.region.amazonaws.com/photos/filename.jpg" -> "photos/filename.jpg"
+                    String url = photo.getS3Url();
+                    return url.substring(url.indexOf(".com/") + 5);
+                })
+                .toList();
+
+        // 3. S3에 있는 파일들을 삭제 (개별 삭제)
+        s3KeysToDelete.forEach(s3Uploader::delete);
+
+        // 4. DB에서 해당 사진들과 관련된 PhotoTag들을 먼저 삭제
+        photoTagRepository.deleteAllByPhotoIn(photosToDelete);
+
+        // 5. DB에서 Photo 엔티티들을 삭제
+        photoRepository.deleteAll(photosToDelete);
     }
 }

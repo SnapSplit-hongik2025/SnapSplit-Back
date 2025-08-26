@@ -3,18 +3,20 @@ package com.snapsplit.backend.global.s3;
 import java.io.IOException;
 import com.snapsplit.backend.global.s3.dto.S3UploadResult;
 import com.snapsplit.backend.config.properties.AwsProperties;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.UUID;
 
-
+@Slf4j
+@Getter
 @Component
 @RequiredArgsConstructor
 public class S3Uploader {
@@ -49,8 +51,18 @@ public class S3Uploader {
         return new S3UploadResult(key, url);
     }
 
-    public S3Client getS3Client() {
-        return this.s3Client;
-    }
+    public void delete(String fileKey) {
+        log.info("S3에서 파일 삭제 시도: {}", fileKey);
 
+        // 1. DeleteObjectRequest 객체 생성
+        DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
+                .bucket(awsProperties.getS3().getBucket())
+                .key(fileKey)
+                .build();
+
+        // 2. S3Client를 사용하여 S3의 파일을 삭제
+        s3Client.deleteObject(deleteObjectRequest);
+
+        log.info("S3에서 파일 삭제 완료: {}", fileKey);
+    }
 }

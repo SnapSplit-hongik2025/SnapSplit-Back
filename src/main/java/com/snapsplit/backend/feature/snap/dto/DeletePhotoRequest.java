@@ -6,6 +6,6 @@ import java.util.List;
 
 @Getter
 @NoArgsConstructor
-public class DeletePhotoRequest { // 클래스 이름 변경
+public class DeletePhotoRequest {
     private List<Long> photoIds;
 }

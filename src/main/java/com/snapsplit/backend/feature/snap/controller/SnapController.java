@@ -37,10 +37,9 @@ public class SnapController {
     @Operation(summary = "사진 삭제", description = "여행에 업로드된 사진을 삭제합니다.")
     public ResponseEntity<ApiResponse<Void>> deletePhotos(
             @PathVariable Long tripId,
-            @RequestBody DeletePhotoRequest request // 파라미터 타입 변경
+            @RequestBody DeletePhotoRequest request
     ) {
-        // snapService.deletePhotos(tripId, request.getPhotoIds());
+        snapService.deletePhotos(tripId, request.getPhotoIds());
         return ResponseEntity.ok(ApiResponse.success("요청된 사진들이 삭제되었습니다.", null));
     }
-
 }
