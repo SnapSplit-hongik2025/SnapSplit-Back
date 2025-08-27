@@ -21,7 +21,7 @@ public class Receipt {
     @JoinColumn(name = "expense_id", nullable = false, unique = true)
     private Expense expense;
 
-    @Column(name = "receipt_url", length = 255, nullable = false)
+    @Column(name = "receipt_url", length = 2048, nullable = false)
     private String receiptUrl;
 
     /**
