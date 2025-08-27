@@ -9,6 +9,7 @@ import com.google.cloud.documentai.v1.RawDocument;
 import com.snapsplit.backend.feature.receipt.dto.ReceiptRequest;
 import com.snapsplit.backend.feature.receipt.dto.ReceiptResponse;
 import com.google.protobuf.ByteString;
+import com.snapsplit.backend.global.s3.S3Uploader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import java.util.regex.Pattern;
 public class ReceiptService {
 
     private final DocumentProcessorServiceClient client;
+    private final S3Uploader s3Uploader;
 
     @Value("${gcp.docai.project-id}")
     private String projectId;
@@ -45,6 +47,10 @@ public class ReceiptService {
     public ReceiptResponse parse(ReceiptRequest request) {
         try {
             MultipartFile file = request.getFile();
+
+            // 영수증 이미지 s3 업로드
+            String receiptUrl = s3Uploader.upload(file, "receipt-images");
+
             String mimeType = (file.getContentType() != null) ? file.getContentType() : "image/jpeg";
 
             String processor = ProcessorName.of(projectId, location, processorId).toString();
@@ -100,6 +106,7 @@ public class ReceiptService {
             return ReceiptResponse.builder()
                     .currency(currencyFinal)
                     .totalAmount(total)
+                    .receiptUrl(receiptUrl)
                     .items(items)
                     .build();
 

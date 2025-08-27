@@ -1,7 +1,11 @@
 package com.snapsplit.backend.feature.addExpense.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.snapsplit.backend.domain.expense.entity.*;
 import com.snapsplit.backend.domain.expense.repository.*;
+import com.snapsplit.backend.domain.receipt.entity.Receipt;
+import com.snapsplit.backend.domain.receipt.repository.ReceiptRepository;
 import com.snapsplit.backend.domain.shared.entity.PaymentMethod;
 import com.snapsplit.backend.domain.shared.entity.Shared;
 import com.snapsplit.backend.domain.shared.repository.SharedRepository;
@@ -14,6 +18,7 @@ import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
 import com.snapsplit.backend.feature.addExpense.dto.ExpenseDetailResponse;
 import com.snapsplit.backend.domain.shared.entity.SharedType;
 import com.snapsplit.backend.feature.getCategoryExpense.service.CategoryExpenseService;
+import com.snapsplit.backend.feature.receipt.service.ReceiptService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,7 +42,7 @@ public class AddExpenseService {
     private final TotalSharedRepository totalSharedRepository;
     private final TripRepository tripRepository;
     private final CategoryExpenseService categoryExpenseService;
-
+    private final ReceiptRepository receiptRepository;
 
 
     //지출 추가
@@ -104,6 +109,26 @@ public class AddExpenseService {
                         .paymentMethod(Expense.PaymentMethod.valueOf(info.paymentMethod().toUpperCase()))
                         .build()
         );
+
+        // 영수증으로 지출 추가한 경우
+        if (request.receiptUrl() != null) {
+            String extractedData = null;
+            if (request.items() != null && !request.items().isEmpty()) {
+                // 아이템들을 JSON으로 직렬화해서 저장
+                extractedData = request.items().stream()
+                        .map(i -> String.format("{\"name\":\"%s\",\"amount\":%s}",
+                                i.name().replace("\"", ""), i.amount()))
+                        .collect(Collectors.joining(",", "[", "]"));
+            }
+
+            Receipt receipt = Receipt.builder()
+                    .expense(expense)
+                    .receiptUrl(request.receiptUrl())
+                    .extractedData(extractedData)
+                    .build();
+
+            receiptRepository.save(receipt);
+        }
 
         // 결제자 저장 & 공동 경비 처리
         List<Pay> pays = request.payers().stream()
@@ -211,6 +236,30 @@ public class AddExpenseService {
                             .build();
                 }).toList();
 
+        // 영수증으로 지출 추가한 지출일 경우
+        Receipt receipt = receiptRepository.findByExpenseId(expenseId).orElse(null);
+        String receiptUrl = null;
+        List<ExpenseDetailResponse.ReceiptItemDto> receiptItems = null;
+        if (receipt != null) {
+            receiptUrl = receipt.getReceiptUrl();
+
+            if (receipt.getExtractedData() != null) {
+                try {
+                    // JSON 파싱 → DTO 변환
+                    ObjectMapper mapper = new ObjectMapper();
+                    List<Map<String, Object>> items =
+                            mapper.readValue(receipt.getExtractedData(), new TypeReference<>() {});
+                    receiptItems = items.stream()
+                            .map(i -> ExpenseDetailResponse.ReceiptItemDto.builder()
+                                    .name((String) i.get("name"))
+                                    .amount(new BigDecimal(i.get("amount").toString()))
+                                    .build())
+                            .toList();
+                } catch (Exception e) {
+                    // 파싱 실패하면 null 유지
+                }
+            }
+        }
         return ExpenseDetailResponse.builder()
                 .expenseId(expense.getId())
                 .amount(expense.getExpenseAmount())
@@ -223,6 +272,8 @@ public class AddExpenseService {
                 .category(expense.getCategory().toString())
                 .payers(payers)
                 .splitters(splitters)
+                .receiptUrl(receiptUrl)
+                .receiptItems(receiptItems)
                 .build();
     }
 

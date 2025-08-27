@@ -12,6 +12,7 @@ public class ReceiptResponse {
 
     private String currency; // 통화
     private BigDecimal totalAmount; // 총액
+    private String receiptUrl; // 영수증 url
     /** 아이템 (이름/금액) */
     private List<UiItem> items;
 
