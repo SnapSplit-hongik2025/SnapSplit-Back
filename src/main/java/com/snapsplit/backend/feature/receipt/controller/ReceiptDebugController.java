@@ -1,4 +1,3 @@
-// ReceiptController.java
 package com.snapsplit.backend.feature.receipt.controller;
 
 import com.snapsplit.backend.feature.receipt.dto.ReceiptDebugResponse;
