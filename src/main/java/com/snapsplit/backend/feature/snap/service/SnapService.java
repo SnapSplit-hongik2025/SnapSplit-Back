@@ -237,7 +237,7 @@ public class SnapService {
                 .toList();
 
         // 3. S3에 있는 파일들을 삭제 (개별 삭제)
-        s3KeysToDelete.forEach(s3Uploader::delete);
+        s3KeysToDelete.forEach(s3Uploader::deleteByKey);
 
         // 4. DB에서 해당 사진들과 관련된 PhotoTag들을 먼저 삭제
         photoTagRepository.deleteAllByPhotoIn(photosToDelete);

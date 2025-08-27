@@ -48,6 +48,9 @@ dependencies {
     //aws 서비스 모듈
     implementation 'software.amazon.awssdk:s3'
     implementation 'software.amazon.awssdk:rekognition'
+
+    implementation platform("com.google.cloud:libraries-bom:26.49.0")
+    implementation "com.google.cloud:google-cloud-document-ai"
 }
 
 tasks.named('test') {

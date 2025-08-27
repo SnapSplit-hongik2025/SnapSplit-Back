@@ -12,7 +12,12 @@ public record AddExpenseRequest(
         @NotNull @Size(min=1)
         List<PayerDto> payers,
         @NotNull @Size(min=1)
-        List<SplitterDto> splitters
+        List<SplitterDto> splitters,
+
+        String receiptUrl, // 영수증 사진 url
+        @Valid
+        List<ReceiptItemDto> items
+
 ) {
 
     public record ExpenseDto(
@@ -44,5 +49,13 @@ public record AddExpenseRequest(
             Long memberId,
             @NotNull @DecimalMin(value = "0.0", inclusive = false)
             BigDecimal splitAmount
+    ) {}
+
+    // 영수증 파싱된 아이템들
+    public record ReceiptItemDto(
+            @NotBlank
+            String name,
+            @NotNull @DecimalMin(value = "0.0", inclusive = false)
+            BigDecimal amount
     ) {}
 }
