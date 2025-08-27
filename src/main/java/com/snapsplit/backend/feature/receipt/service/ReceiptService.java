@@ -187,7 +187,7 @@ public class ReceiptService {
     }
 
     private static final Pattern ISO_CODE = Pattern.compile(
-            "\\b(USD|AUD|CAD|NZD|SGD|HKD|TWD|JPY|EUR|GBP|CHF|SEK|NOK|DKK|PLN|CZK|HUF|TRY|ILS|INR|AED|SAR|THB|IDR|MYR|VND|ZAR|BRL|MXN|PHP|RUB|CNY)\\b",
+            "\\b(USD|AUD|CAD|NZD|SGD|HKD|TWD|JPY|EUR|GBP|CHF|SEK|NOK|DKK|PLN|CZK|HUF|TRY|ILS|INR|AED|SAR|THB|IDR|MYR|VND|ZAR|BRL|MXN|PHP|RUB|CNY|KRW)\\b",
             Pattern.CASE_INSENSITIVE
     );
 
