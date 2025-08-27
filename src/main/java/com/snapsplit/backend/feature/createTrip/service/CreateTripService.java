@@ -1,5 +1,7 @@
 package com.snapsplit.backend.feature.createTrip.service;
 
+import com.snapsplit.backend.domain.album.entity.Album;
+import com.snapsplit.backend.domain.album.repository.AlbumRepository;
 import com.snapsplit.backend.domain.country.entity.Country;
 import com.snapsplit.backend.domain.country.repository.CountryRepository;
 import com.snapsplit.backend.domain.totalshared.entity.TotalShared;
@@ -13,6 +15,7 @@ import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.domain.user.repository.UserRepository;
 import com.snapsplit.backend.feature.createTrip.dto.CreateTripRequest;
 import com.snapsplit.backend.global.s3.S3Uploader;
+import com.snapsplit.backend.global.s3.dto.S3UploadResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +39,7 @@ public class CreateTripService {
     private final TotalSharedRepository totalSharedRepository;
     private final UserRepository userRepository;
     private final S3Uploader s3Uploader;
+    private final AlbumRepository albumRepository;
 
     // 신규 여행 등록하기
     @Transactional
@@ -47,7 +51,8 @@ public class CreateTripService {
         // 여행 대표 사진 S3 업로드
         String tripImageUrl = null;
         if (tripImageFile != null && !tripImageFile.isEmpty()) {
-            tripImageUrl = s3Uploader.upload(tripImageFile, "trip-images");
+            S3UploadResult uploadResult = s3Uploader.upload(tripImageFile, "trip-images");
+            tripImageUrl = uploadResult.getFileUrl();
         }
 
         // Trip 생성
@@ -61,6 +66,12 @@ public class CreateTripService {
                 .defaultCurrency("KRW")
                 .build();
         tripRepository.save(trip);
+
+        // Trip 생성 직후, 해당 Trip에 대한 Album 생성
+        Album album = Album.builder()
+                .trip(trip)
+                .build();
+        albumRepository.save(album);
 
         // 통화 코드 수집용 Set
         Set<String> currencySet = new HashSet<>();

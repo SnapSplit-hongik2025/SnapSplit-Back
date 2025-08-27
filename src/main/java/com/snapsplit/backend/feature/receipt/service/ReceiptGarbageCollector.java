@@ -41,7 +41,7 @@ public class ReceiptGarbageCollector {
         // 4) 배치 삭제
         for (String url : urlsToDelete) {
             try {
-                s3Uploader.delete(url);
+                s3Uploader.deleteByUrl(url);
                 log.info("Deleted unused receipt: {}", url);
             } catch (Exception e) {
                 // 개별 삭제 실패 로깅하고 계속 진행

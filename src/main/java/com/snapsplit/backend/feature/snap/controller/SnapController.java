@@ -1,0 +1,62 @@
+package com.snapsplit.backend.feature.snap.controller;
+
+import com.snapsplit.backend.feature.snap.dto.DeletePhotoRequest;
+import com.snapsplit.backend.feature.snap.dto.UpdatePhotoTagRequest;
+import com.snapsplit.backend.feature.snap.dto.UploadPhotoResponse;
+import com.snapsplit.backend.feature.snap.service.SnapService;
+import com.snapsplit.backend.global.aop.CheckTripMember;
+import com.snapsplit.backend.global.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
+
+@Tag(name = "SNAP", description = "얼굴 등록, 사진 업로드, 필터링")
+@RestController
+@RequestMapping("/trips/{tripId}/snap")
+@RequiredArgsConstructor
+public class SnapController {
+
+    private final SnapService snapService;
+
+    @CheckTripMember
+    @PostMapping(value = "/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "사진 업로드 및 자동 태깅", description = "여행에 사진을 업로드하고 자동으로 인물을 태깅합니다.")
+    public ResponseEntity<ApiResponse<List<UploadPhotoResponse>>> uploadPhotos(
+            @PathVariable Long tripId,
+            @RequestParam("images") List<MultipartFile> images
+    ) {
+        List<UploadPhotoResponse> responseData = snapService.uploadAndTagPhotos(tripId, images);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("사진 업로드 및 태깅에 성공했습니다.", responseData));
+    }
+
+    @CheckTripMember
+    @DeleteMapping("/photos")
+    @Operation(summary = "사진 삭제", description = "여행에 업로드된 사진을 삭제합니다.")
+    public ResponseEntity<ApiResponse<Void>> deletePhotos(
+            @PathVariable Long tripId,
+            @RequestBody DeletePhotoRequest request
+    ) {
+        snapService.deletePhotos(tripId, request.getPhotoIds());
+        return ResponseEntity.ok(ApiResponse.success("요청된 사진들이 삭제되었습니다.", null));
+    }
+
+    @CheckTripMember
+    @PutMapping("/photos/{photoId}/tags")
+    @Operation(summary = "사진 태그 수동 수정", description = "사진의 인물 태그를 요청된 멤버 목록으로 교체합니다.")
+    public ResponseEntity<ApiResponse<UploadPhotoResponse>> updatePhotoTags(
+            @PathVariable Long tripId,
+            @PathVariable Long photoId,
+            @RequestBody UpdatePhotoTagRequest request
+    ) {
+        UploadPhotoResponse responseData = snapService.updatePhotoTags(tripId, photoId, request);
+        return ResponseEntity.ok(ApiResponse.success("사진의 인물 태그가 성공적으로 수정되었습니다.", responseData));
+    }
+
+}

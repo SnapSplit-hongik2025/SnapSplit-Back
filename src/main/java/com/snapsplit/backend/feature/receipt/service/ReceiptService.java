@@ -53,7 +53,8 @@ public class ReceiptService {
 
             String receiptUrl;
             try {
-                receiptUrl = s3Uploader.upload(file, "receipt-images");
+                com.snapsplit.backend.global.s3.dto.S3UploadResult uploadResult = s3Uploader.upload(file, "receipt-images");
+                receiptUrl = uploadResult.getFileUrl();
             } catch (IOException e) {
                 throw new ReceiptProcessingException("영수증 이미지 업로드에 실패했습니다.", e);
             }

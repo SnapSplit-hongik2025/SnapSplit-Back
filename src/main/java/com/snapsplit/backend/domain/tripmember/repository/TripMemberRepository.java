@@ -1,6 +1,7 @@
 package com.snapsplit.backend.domain.tripmember.repository;
 
 import com.snapsplit.backend.domain.trip.entity.Trip;
+import com.snapsplit.backend.domain.tripmember.entity.MemberType;
 import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import org.springframework.data.domain.Pageable;
 import com.snapsplit.backend.domain.user.entity.User;
@@ -54,4 +55,6 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
     @Query("SELECT tm FROM TripMember tm JOIN FETCH tm.user WHERE tm.trip.id = :tripId")
     List<TripMember> findAllByTripIdWithUser(@Param("tripId") Long tripId);
 
+    int countByTrip_IdAndMemberType(Long tripId, MemberType memberType);
+    List<TripMember> findAllByIdInAndTrip_Id(List<Long> ids, Long tripId);
 }

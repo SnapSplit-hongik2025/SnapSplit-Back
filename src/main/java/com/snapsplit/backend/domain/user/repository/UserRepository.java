@@ -11,4 +11,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 유저 코드로 사용자 찾기
     Optional<User> findByUserCode(String userCode);
+
+    // AWS Rekognition FaceId로 사용자를 찾는 메소드
+    Optional<User> findByAwsFaceId(String awsFaceId);
 }
