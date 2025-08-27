@@ -42,4 +42,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.fail(500, "알 수 없는 오류가 발생했습니다."));
     }
+
+    @ExceptionHandler(ReceiptProcessingException.class)
+    public ResponseEntity<ApiResponse<Void>> handleReceiptProcessing(ReceiptProcessingException e) {
+        return ResponseEntity
+                .status(e.getStatus())
+                .body(ApiResponse.fail(e.getStatus().value(), e.getMessage()));
+    }
 }

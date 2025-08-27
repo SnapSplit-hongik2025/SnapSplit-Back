@@ -42,6 +42,8 @@ dependencies {
 
     implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 
+    implementation platform("com.google.cloud:libraries-bom:26.49.0")
+    implementation "com.google.cloud:google-cloud-document-ai"
 }
 
 tasks.named('test') {

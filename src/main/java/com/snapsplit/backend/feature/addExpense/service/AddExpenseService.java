@@ -1,7 +1,11 @@
 package com.snapsplit.backend.feature.addExpense.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.snapsplit.backend.domain.expense.entity.*;
 import com.snapsplit.backend.domain.expense.repository.*;
+import com.snapsplit.backend.domain.receipt.entity.Receipt;
+import com.snapsplit.backend.domain.receipt.repository.ReceiptRepository;
 import com.snapsplit.backend.domain.shared.entity.PaymentMethod;
 import com.snapsplit.backend.domain.shared.entity.Shared;
 import com.snapsplit.backend.domain.shared.repository.SharedRepository;
@@ -14,6 +18,7 @@ import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
 import com.snapsplit.backend.feature.addExpense.dto.ExpenseDetailResponse;
 import com.snapsplit.backend.domain.shared.entity.SharedType;
 import com.snapsplit.backend.feature.getCategoryExpense.service.CategoryExpenseService;
+import com.snapsplit.backend.feature.receipt.service.ReceiptService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,7 +42,7 @@ public class AddExpenseService {
     private final TotalSharedRepository totalSharedRepository;
     private final TripRepository tripRepository;
     private final CategoryExpenseService categoryExpenseService;
-
+    private final ReceiptRepository receiptRepository;
 
 
     //지출 추가
@@ -104,6 +109,28 @@ public class AddExpenseService {
                         .paymentMethod(Expense.PaymentMethod.valueOf(info.paymentMethod().toUpperCase()))
                         .build()
         );
+
+        // 영수증으로 지출 추가한 경우
+        if (request.receiptUrl() != null) {
+            String extractedData = null;
+            if (request.items() != null && !request.items().isEmpty()) {
+                // ObjectMapper를 사용한 안전한 JSON 직렬화
+                ObjectMapper mapper = new ObjectMapper();
+                try {
+                    extractedData = mapper.writeValueAsString(request.items());
+                } catch (Exception e) {
+                    throw new RuntimeException("영수증 아이템 직렬화 실패", e);
+                }
+            }
+
+            Receipt receipt = Receipt.builder()
+                    .expense(expense)
+                    .receiptUrl(request.receiptUrl())
+                    .extractedData(extractedData)
+                    .build();
+
+            receiptRepository.save(receipt);
+        }
 
         // 결제자 저장 & 공동 경비 처리
         List<Pay> pays = request.payers().stream()
@@ -211,6 +238,27 @@ public class AddExpenseService {
                             .build();
                 }).toList();
 
+        // 영수증으로 지출 추가한 지출일 경우
+        Receipt receipt = receiptRepository.findByExpense_Id(expenseId).orElse(null);
+        String receiptUrl = null;
+        List<ExpenseDetailResponse.ReceiptItemDto> receiptItems = null;
+
+        if (receipt != null) {
+            receiptUrl = receipt.getReceiptUrl();
+
+            if (receipt.getExtractedData() != null) {
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    // ReceiptItemDto 바로 역직렬화
+                    receiptItems = mapper.readValue(
+                            receipt.getExtractedData(),
+                            new TypeReference<List<ExpenseDetailResponse.ReceiptItemDto>>() {}
+                    );
+                } catch (Exception e) {
+                    // 파싱 실패하면 null 유지
+                }
+            }
+        }
         return ExpenseDetailResponse.builder()
                 .expenseId(expense.getId())
                 .amount(expense.getExpenseAmount())
@@ -223,6 +271,8 @@ public class AddExpenseService {
                 .category(expense.getCategory().toString())
                 .payers(payers)
                 .splitters(splitters)
+                .receiptUrl(receiptUrl)
+                .receiptItems(receiptItems)
                 .build();
     }
 

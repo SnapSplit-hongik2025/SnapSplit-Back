@@ -1,5 +1,6 @@
 package com.snapsplit.backend.domain.expense.entity;
 
+import com.snapsplit.backend.domain.receipt.entity.Receipt;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -46,6 +47,9 @@ public class Expense {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false)
     private PaymentMethod paymentMethod;
+
+    @OneToOne(mappedBy = "expense", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Receipt receipt;
 
     public enum Category {
         FLIGHT, ACCOMMODATION, FOOD, TRANSPORTATION, TOUR, SHOPPING, OTHERS

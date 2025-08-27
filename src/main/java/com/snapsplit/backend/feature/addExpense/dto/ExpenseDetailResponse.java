@@ -19,11 +19,20 @@ public record ExpenseDetailResponse(
         String expenseMemo,
         String category,
         List<MemberAmountDto> payers,
-        List<MemberAmountDto> splitters
+        List<MemberAmountDto> splitters,
+        // 영수증으로 지출 추가한 경우
+        String receiptUrl,
+        List<ReceiptItemDto> receiptItems
 ) {
     @Builder
     public record MemberAmountDto(
             Long memberId,
+            String name,
+            BigDecimal amount
+    ) {}
+
+    @Builder
+    public record ReceiptItemDto(
             String name,
             BigDecimal amount
     ) {}
