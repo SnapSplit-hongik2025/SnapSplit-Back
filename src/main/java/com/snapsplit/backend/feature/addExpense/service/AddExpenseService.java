@@ -114,11 +114,13 @@ public class AddExpenseService {
         if (request.receiptUrl() != null) {
             String extractedData = null;
             if (request.items() != null && !request.items().isEmpty()) {
-                // 아이템들을 JSON으로 직렬화해서 저장
-                extractedData = request.items().stream()
-                        .map(i -> String.format("{\"name\":\"%s\",\"amount\":%s}",
-                                i.name().replace("\"", ""), i.amount()))
-                        .collect(Collectors.joining(",", "[", "]"));
+                // ObjectMapper를 사용한 안전한 JSON 직렬화
+                ObjectMapper mapper = new ObjectMapper();
+                try {
+                    extractedData = mapper.writeValueAsString(request.items());
+                } catch (Exception e) {
+                    throw new RuntimeException("영수증 아이템 직렬화 실패", e);
+                }
             }
 
             Receipt receipt = Receipt.builder()
@@ -240,21 +242,18 @@ public class AddExpenseService {
         Receipt receipt = receiptRepository.findByExpense_Id(expenseId).orElse(null);
         String receiptUrl = null;
         List<ExpenseDetailResponse.ReceiptItemDto> receiptItems = null;
+
         if (receipt != null) {
             receiptUrl = receipt.getReceiptUrl();
 
             if (receipt.getExtractedData() != null) {
                 try {
-                    // JSON 파싱 → DTO 변환
                     ObjectMapper mapper = new ObjectMapper();
-                    List<Map<String, Object>> items =
-                            mapper.readValue(receipt.getExtractedData(), new TypeReference<>() {});
-                    receiptItems = items.stream()
-                            .map(i -> ExpenseDetailResponse.ReceiptItemDto.builder()
-                                    .name((String) i.get("name"))
-                                    .amount(new BigDecimal(i.get("amount").toString()))
-                                    .build())
-                            .toList();
+                    // ReceiptItemDto 바로 역직렬화
+                    receiptItems = mapper.readValue(
+                            receipt.getExtractedData(),
+                            new TypeReference<List<ExpenseDetailResponse.ReceiptItemDto>>() {}
+                    );
                 } catch (Exception e) {
                     // 파싱 실패하면 null 유지
                 }
