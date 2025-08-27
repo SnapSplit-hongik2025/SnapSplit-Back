@@ -9,12 +9,14 @@ import com.google.cloud.documentai.v1.RawDocument;
 import com.snapsplit.backend.feature.receipt.dto.ReceiptRequest;
 import com.snapsplit.backend.feature.receipt.dto.ReceiptResponse;
 import com.google.protobuf.ByteString;
+import com.snapsplit.backend.global.exception.ReceiptProcessingException;
 import com.snapsplit.backend.global.s3.S3Uploader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -48,8 +50,12 @@ public class ReceiptService {
         try {
             MultipartFile file = request.getFile();
 
-            // 영수증 이미지 s3 업로드
-            String receiptUrl = s3Uploader.upload(file, "receipt-images");
+            String receiptUrl;
+            try {
+                receiptUrl = s3Uploader.upload(file, "receipt-images");
+            } catch (IOException e) {
+                throw new ReceiptProcessingException("영수증 이미지 업로드에 실패했습니다.", e);
+            }
 
             String mimeType = (file.getContentType() != null) ? file.getContentType() : "image/jpeg";
 
