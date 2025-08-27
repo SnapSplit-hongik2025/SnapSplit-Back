@@ -2,6 +2,9 @@ application.yml
 # Google Cloud Credentials
 composed-amulet-468906-r3-00461b9d870d.json
 
+# macOS system files
+.DS_Store
+
 HELP.md
 .gradle
 build/

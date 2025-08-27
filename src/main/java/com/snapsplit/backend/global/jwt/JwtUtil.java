@@ -22,25 +22,25 @@ public class JwtUtil {
     // jwt 생성, 검증, 파싱 담당
 
     private final Key key;
-    private final long ACCESS_TOKEN_EXP;
-    private final long REFRESH_TOKEN_EXP;
+    private final long ACCESS_TOKEN_EXP_MS;
+    private final long REFRESH_TOKEN_EXP_MS;
 
     public JwtUtil(
             @Value("${jwt.secret}") String secret,
-            @Value("${jwt.access-exp}") long accessExp,
-            @Value("${jwt.refresh-exp}") long refreshExp
+            @Value("${jwt.access.expiration-seconds}") long accessExpSeconds,
+            @Value("${jwt.refresh.expiration-seconds}") long refreshExpSeconds
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
-        this.ACCESS_TOKEN_EXP = accessExp;
-        this.REFRESH_TOKEN_EXP = refreshExp;
+        this.ACCESS_TOKEN_EXP_MS = accessExpSeconds * 1000;
+        this.REFRESH_TOKEN_EXP_MS = refreshExpSeconds * 1000;
     }
 
     public String generateAccessToken(User user) {
-        return createToken(user.getKakaoId(), ACCESS_TOKEN_EXP, "access", user.getId(), user.getName());
+        return createToken(user.getKakaoId(), ACCESS_TOKEN_EXP_MS, "access", user.getId(), user.getName());
     }
 
     public String generateRefreshToken(User user) {
-        return createToken(user.getKakaoId(), REFRESH_TOKEN_EXP, "refresh", user.getId(), user.getName());
+        return createToken(user.getKakaoId(), REFRESH_TOKEN_EXP_MS, "refresh", user.getId(), user.getName());
     }
 
 
@@ -98,7 +98,7 @@ public class JwtUtil {
     // 리프레시 토큰 만료 시간
     public LocalDateTime getRefreshTokenExpiry() {
         return Instant.now()
-                .plusMillis(REFRESH_TOKEN_EXP)
+                .plusMillis(REFRESH_TOKEN_EXP_MS)
                 .atZone(ZoneId.systemDefault())
                 .toLocalDateTime();
     }

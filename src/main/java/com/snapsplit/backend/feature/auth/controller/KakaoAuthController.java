@@ -5,19 +5,20 @@ import com.snapsplit.backend.feature.auth.token.RefreshToken;
 import com.snapsplit.backend.feature.auth.token.RefreshTokenService;
 import com.snapsplit.backend.domain.user.entity.User;
 import com.snapsplit.backend.global.jwt.JwtUtil;
+import jakarta.servlet.http.Cookie;
 import com.snapsplit.backend.global.response.ApiResponse;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Tag(name = "로그인/로그아웃", description = "로그인/로그아웃/토큰 재발급")
@@ -30,6 +31,12 @@ public class KakaoAuthController {
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
     private final RedisTemplate<String, String> redisTemplate;
+
+    @Value("${jwt.access.expiration-seconds}")
+    private long accessTokenValidityInSeconds;
+
+    @Value("${jwt.refresh.expiration-seconds}")
+    private long refreshTokenValidityInSeconds;
 
     @Operation(summary = "카카오 로그인",
             description = "전달받은 인가 코드로 카카오에서 사용자 정보를 받고, " +
@@ -51,18 +58,26 @@ public class KakaoAuthController {
             String accessToken = jwtUtil.generateAccessToken(user);
             String refreshToken = jwtUtil.generateRefreshToken(user);
 
-            refreshTokenService.save(user, refreshToken, jwtUtil.getRefreshTokenExpiry());
+            // refresh token DB에 저장
+            refreshTokenService.save(user, refreshToken);
 
+            // 토큰을 담을 HttpOnly 쿠키 생성
+            ResponseCookie accessTokenCookie = createCookie("accessToken", accessToken, accessTokenValidityInSeconds);
+            ResponseCookie refreshTokenCookie = createCookie("refreshToken", refreshToken, refreshTokenValidityInSeconds);
+
+            // 유저 정보를 담은 응답 dto
             LoginResponse response = LoginResponse.builder()
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
                     .userId(user.getId())
                     .name(user.getName())
                     .profileImage(user.getProfileImage())
                     .userCode(user.getUserCode())
                     .build();
 
-            return ResponseEntity.ok(ApiResponse.success("카카오 로그인 성공", response));
+            // 헤더에 쿠키 담아서 응답
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                    .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                    .body(ApiResponse.success("카카오 로그인 성공", response));
 
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -72,67 +87,89 @@ public class KakaoAuthController {
 
     @Operation(summary = "로그아웃")
     @PostMapping("/kakao/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(@RequestBody LogoutRequest request,
-                                                    HttpServletRequest httpRequest) {
+    public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request) {
         System.out.println("[로그아웃] 컨트롤러 진입 성공");
-        // 1. access token 추출
-        String token = jwtUtil.resolveToken(httpRequest);
-        if (token == null) {
-            return ResponseEntity.status(401)
-                    .body(ApiResponse.fail(401, "access token이 없습니다."));
+        // 1. 쿠키에서 token 추출
+        String accessToken = getCookieValue(request, "accessToken");
+        String refreshToken = getCookieValue(request, "refreshToken");
+
+        // 2. access token 블랙리스트 등록 (redis 사용)
+        if (accessToken != null) {
+            long expiration = jwtUtil.getExpiration(accessToken).getTime() - System.currentTimeMillis();
+            redisTemplate.opsForValue().set(accessToken, "logout", expiration, TimeUnit.MILLISECONDS);
         }
 
-        try {
-            jwtUtil.validateToken(token);
-        } catch (ExpiredJwtException e) {
-            return ResponseEntity.status(401)
-                    .body(ApiResponse.fail(401, "access token이 만료되었습니다."));
-        } catch (JwtException | IllegalArgumentException e) {
-            return ResponseEntity.status(401)
-                    .body(ApiResponse.fail(401, "유효하지 않은 access token입니다."));
+        // 3. db에서 refresh token 삭제
+        if (refreshToken != null) {
+            refreshTokenService.deleteByToken(refreshToken);
         }
 
-        // 2. access token 블랙리스트 등록 (만료까지의 TTL 설정)
-        long expiration = jwtUtil.getExpiration(token).getTime() - System.currentTimeMillis();
-        redisTemplate.opsForValue().set(token, "logout", expiration, TimeUnit.MILLISECONDS);
+        // 4. 클라이언트의 쿠키 삭제
+        ResponseCookie expiredAccessTokenCookie = createCookie("accessToken", "", 0);
+        ResponseCookie expiredRefreshTokenCookie = createCookie("refreshToken", "", 0);
 
-        // 3. refresh token 삭제
-        boolean deleted = refreshTokenService.deleteByToken(request.getRefreshToken());
-        if (!deleted) {
-            return ResponseEntity.status(400)
-                    .body(ApiResponse.fail(400, "refresh token이 존재하지 않습니다."));
-        }
-
-        return ResponseEntity.ok(ApiResponse.success("로그아웃 완료", null));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, expiredAccessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, expiredRefreshTokenCookie.toString())
+                .body(ApiResponse.success("로그아웃 완료", null));
     }
 
     @Operation(summary = "access 토큰 재발급", description = "리프레시 토큰을 기반으로 액세스 토큰을 재발급합니다.")
     @PostMapping("/token/refresh")
-    public ResponseEntity<ApiResponse<TokenResponse>> refreshAccessToken(@RequestBody RefreshRequest request) {
-        // 클라이언트가 보낸 JSON에서 refreshToken 값 추출
-        String refreshToken = request.getRefreshToken();
+    public ResponseEntity<ApiResponse<Void>> refreshAccessToken(@CookieValue(name = "refreshToken", required = false) String refreshToken) {
 
-        Optional<RefreshToken> tokenOptional = refreshTokenService.findByToken(refreshToken);
-        //해당 refreshToken이 DB에 없는 경우
-        if (tokenOptional.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.fail(401, "refresh token이 존재하지 않습니다."));
+        if (refreshToken == null) {
+            return ResponseEntity.status(401).body(ApiResponse.fail(401, "Refresh token이 쿠키에 존재하지 않습니다."));
         }
 
-        RefreshToken refreshTokenEntity = tokenOptional.get();
+        // 1. DB에서 Refresh Token 조회 및 유효성 검증
+        RefreshToken refreshTokenEntity = refreshTokenService.findByToken(refreshToken)
+                .orElseThrow(() -> new IllegalArgumentException("Refresh token not found."));
 
-        //refreshToken 만료 여부 확인
         if (refreshTokenEntity.isExpired()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.fail(401, "refresh token이 만료되었습니다."));
+            refreshTokenService.deleteByToken(refreshToken); // 만료된 토큰은 DB에서 삭제
+            throw new IllegalArgumentException("Refresh token has expired.");
         }
 
+        // 2. 새로운 Access, Refresh 토큰 생성 (보안 강화를 위해 Refresh Token도 재발급 - Token Rotation)
         User user = refreshTokenEntity.getUser();
         String newAccessToken = jwtUtil.generateAccessToken(user);
+        String newRefreshToken = jwtUtil.generateRefreshToken(user);
 
-        TokenResponse tokenResponse = new TokenResponse(newAccessToken, refreshToken);
+        // 3. 기존 Refresh Token을 새로운 토큰으로 DB에 업데이트
+        refreshTokenService.save(user, newRefreshToken);
 
-        return ResponseEntity.ok(ApiResponse.success("access token 재발급 성공", tokenResponse));
+        // 4. 새로운 토큰들을 쿠키에 담아 응답
+        ResponseCookie accessTokenCookie = createCookie("accessToken", newAccessToken, accessTokenValidityInSeconds);
+        ResponseCookie refreshTokenCookie = createCookie("refreshToken", newRefreshToken, refreshTokenValidityInSeconds);
+
+        return ResponseEntity.noContent() // 204 No Content: 바디 없이 헤더만 전달
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .build();
     }
+
+    private ResponseCookie createCookie(String name, String value, long maxAgeInSeconds) {
+        return ResponseCookie.from(name, value)
+                .httpOnly(true)
+                .secure(true)       // HTTPS 환경에서만 전송
+                .path("/")          // 쿠키가 전송될 경로
+                .maxAge(maxAgeInSeconds) // 쿠키 유효 기간
+                .sameSite("Strict") // CSRF 공격 방지
+                .build();
+    }
+
+    private String getCookieValue(HttpServletRequest request, String name) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (name.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
 
 }

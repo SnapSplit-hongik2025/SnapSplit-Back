@@ -14,6 +14,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import jakarta.servlet.http.Cookie;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -31,13 +32,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
 
+        System.out.println("[JwtAuthenticationFilter] Request URI: " + path);
+
         // 화이트리스트 경로는 필터 건너뛰기
         if (isWhitelisted(path)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = jwtUtil.resolveToken(request);
+        String token = getCookieValue(request, "accessToken");
 
         try {
             if (token == null) {
@@ -79,10 +82,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     //토큰 인증 없이 접근 가능한 경로는 로그인과 토큰 재발급뿐
     private boolean isWhitelisted(String path) {
-        return path.equals("/auth/kakao/login")
-                || path.equals("/auth/token/refresh")
+        boolean isWhite = path.endsWith("/auth/kakao/login")
+                || path.endsWith("/auth/token/refresh")
                 || path.startsWith("/swagger-ui")
                 || path.startsWith("/v3/api-docs");
+
+        System.out.println("[isWhitelisted] Path: " + path + ", Result: " + isWhite);
+
+        return isWhite;
     }
 
     //에러 응답 공통 처리 함수
@@ -91,5 +98,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         response.setStatus(status);
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
+    }
+
+    private String getCookieValue(HttpServletRequest request, String name) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (name.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 }
