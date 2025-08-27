@@ -237,7 +237,7 @@ public class AddExpenseService {
                 }).toList();
 
         // 영수증으로 지출 추가한 지출일 경우
-        Receipt receipt = receiptRepository.findByExpenseId(expenseId).orElse(null);
+        Receipt receipt = receiptRepository.findByExpense_Id(expenseId).orElse(null);
         String receiptUrl = null;
         List<ExpenseDetailResponse.ReceiptItemDto> receiptItems = null;
         if (receipt != null) {
