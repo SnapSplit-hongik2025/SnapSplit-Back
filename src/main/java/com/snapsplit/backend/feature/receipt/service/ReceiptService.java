@@ -13,6 +13,7 @@ import com.snapsplit.backend.global.exception.ReceiptProcessingException;
 import com.snapsplit.backend.global.s3.S3Uploader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -70,8 +71,15 @@ public class ReceiptService {
                     .setRawDocument(rawDocument)
                     .build();
 
-            ProcessResponse resp = client.processDocument(pr);
-            Document doc = resp.getDocument();
+            Document doc;
+            try {
+                ProcessResponse resp = client.processDocument(pr);
+                doc = resp.getDocument();
+            } catch (com.google.api.gax.rpc.ApiException ex) {
+                // 네트워크/서비스 오류 → 502 매핑 (rate limit/exhaustion은 필요시 503 고려)
+                throw new ReceiptProcessingException("DocAI 호출 실패");
+            }
+
 
             // rawText: 통화 추정에만 사용
             String rawText = safeClamp(doc.getText(), 20_000);

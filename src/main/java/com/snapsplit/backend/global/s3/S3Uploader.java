@@ -1,6 +1,7 @@
 package com.snapsplit.backend.global.s3;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import java.io.IOException;
@@ -9,6 +10,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,16 +39,29 @@ public class S3Uploader {
         return amazonS3.getUrl(bucket, fileName).toString(); // URL 반환
     }
 
-    // 객체 리스트 가져오기
+    // 객체 리스트 가져오기 (페이징 포함)
     public List<String> listObjects(String dir) {
-        ListObjectsV2Result result = amazonS3.listObjectsV2(bucket, dir);
-        return result.getObjectSummaries().stream()
-                .map(s -> String.format("https://%s.s3.%s.amazonaws.com/%s",
-                        bucket,
-                        amazonS3.getRegionName(),
-                        s.getKey()))
-                .toList();
+        List<String> urls = new ArrayList<>();
+        String continuationToken = null;
+
+        do {
+            ListObjectsV2Request request = new ListObjectsV2Request()
+                    .withBucketName(bucket)
+                    .withPrefix(dir)
+                    .withContinuationToken(continuationToken);
+
+            ListObjectsV2Result result = amazonS3.listObjectsV2(request);
+
+            result.getObjectSummaries().forEach(s ->
+                    urls.add(amazonS3.getUrl(bucket, s.getKey()).toString())
+            );
+
+            continuationToken = result.getNextContinuationToken();
+        } while (continuationToken != null);
+
+        return urls;
     }
+
 
     // 객체 삭제
     public void delete(String fileUrl) {
@@ -52,6 +70,20 @@ public class S3Uploader {
     }
 
     private String extractKeyFromUrl(String fileUrl) {
-        return fileUrl.substring(fileUrl.indexOf(".com/") + 5);
+        try {
+            URI uri = URI.create(fileUrl);
+            String path = uri.getPath(); // "/bucket/key" or "/key"
+            if (path.startsWith("/")) path = path.substring(1);
+
+            // path-style 주소인 경우 bucket/ 제거
+            if (path.startsWith(bucket + "/")) {
+                path = path.substring(bucket.length() + 1);
+            }
+
+            // 퍼센트 인코딩 해제
+            return URLDecoder.decode(path, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("유효하지 않은 S3 URL: " + fileUrl, e);
+        }
     }
 }
