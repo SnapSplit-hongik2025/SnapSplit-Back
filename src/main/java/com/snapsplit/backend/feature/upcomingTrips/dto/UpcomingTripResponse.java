@@ -16,15 +16,15 @@ public class UpcomingTripResponse {
     private String tripName;
     private LocalDate startDate;
     private LocalDate endDate;
-    private List<String> countryNames;
+    private List<String> countries;
 
-    public static UpcomingTripResponse from(Trip trip, List<String> countryNames) {
+    public static UpcomingTripResponse from(Trip trip, List<String> countries) {
         return new UpcomingTripResponse(
                 trip.getId(),
                 trip.getTripName(),
                 trip.getStartDate(),
                 trip.getEndDate(),
-                countryNames
+                countries
         );
     }
 }

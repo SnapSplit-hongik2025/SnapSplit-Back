@@ -24,14 +24,7 @@ public class JoinTripController {
     @Operation(summary = "초대 코드로 여행 참여", description = "참여하고 싶은 초대 코드를 입력하여 여행에 참여합니다.")
     @PostMapping("/join")
     public ApiResponse<JoinTripResponse> joinTrip(@RequestBody JoinTripRequest request) {
-        JoinTripResult result = joinTripService.joinTrip(request.getUserId(), request.getInviteCode());
-
-        // 실패했을 시
-        if (!result.isSuccess()) {
-            return ApiResponse.fail(400, result.getMessage());
-        }
-
-        // 성공했을 시
-        return ApiResponse.success(result.getMessage(), result.getData());
+        JoinTripResponse response = joinTripService.joinTrip(request.getUserId(), request.getInviteCode());
+        return ApiResponse.success("여행에 성공적으로 참여가 완료되었습니다.", response);
     }
 }
