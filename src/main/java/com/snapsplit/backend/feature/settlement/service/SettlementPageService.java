@@ -29,24 +29,39 @@ public class SettlementPageService {
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("여행이 존재하지 않습니다."));
 
+        // 정산 내역
+        var settlements = settlementRepository.findAllByTripId(tripId);
+
         // 정산 내역 정보
-        List<SettlementPageResponse.SettlementSummary> completeSettlement = settlementRepository.findAllByTripId(tripId).stream()
-                .map(settlement -> SettlementPageResponse.SettlementSummary.builder()
-                        .id(settlement.getId())
-                        .startDate(settlement.getStartDate())
-                        .endDate(settlement.getEndDate())
+        List<SettlementPageResponse.SettlementSummary> completeSettlement = settlements.stream()
+                .map(s -> SettlementPageResponse.SettlementSummary.builder()
+                        .id(s.getId())
+                        .startDate(s.getStartDate())
+                        .endDate(s.getEndDate())
                         .build())
                 .toList();
 
-        // 여행 기간 내 모든 지출 날짜 세트화
+        // 여행 기간 범위 설정(시작일-1 ~ 종료일)
         LocalDate start = trip.getStartDate().minusDays(1);
         LocalDate end = trip.getEndDate();
 
+        // 지출 날짜 set
         List<Expense> expensesInRange =
                 expenseRepository.findByTripIdAndExpenseDateBetween(tripId, start, end);
 
         Set<LocalDate> expenseDates = expensesInRange.stream()
                 .map(Expense::getExpenseDate)
+                .collect(Collectors.toSet());
+
+        // 정산 완료 날짜 set
+        Set<LocalDate> settledDates = settlements.stream()
+                .flatMap(s -> {
+                    List<LocalDate> days = new ArrayList<>();
+                    for (LocalDate d = s.getStartDate(); !d.isAfter(s.getEndDate()); d = d.plusDays(1)) {
+                        days.add(d);
+                    }
+                    return days.stream();
+                })
                 .collect(Collectors.toSet());
 
         // 날짜별 지출 유무 리스트 생성
@@ -56,6 +71,7 @@ public class SettlementPageService {
                     SettlementPageResponse.DailyExpenseStatus.builder()
                             .date(d)
                             .hasExpense(expenseDates.contains(d))
+                            .settled(settledDates.contains(d))
                             .build()
             );
         }

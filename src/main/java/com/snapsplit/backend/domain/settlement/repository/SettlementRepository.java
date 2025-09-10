@@ -2,6 +2,8 @@ package com.snapsplit.backend.domain.settlement.repository;
 
 import com.snapsplit.backend.domain.settlement.entity.Settlement;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -13,4 +15,19 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
     boolean existsByTrip_IdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
             Long tripId, LocalDate startDate, LocalDate endDate
     );
+
+    //
+    @Query("""
+        select (count(s) > 0)
+        from Settlement s
+        where s.trip.id = :tripId
+          and s.startDate <= :endDate
+          and s.endDate >= :startDate
+    """)
+    boolean existsOverlapping(
+            @Param("tripId") Long tripId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
 }

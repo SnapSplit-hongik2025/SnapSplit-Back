@@ -41,9 +41,32 @@ public class SettlementService {
         LocalDate startDate = request.getStartDate();
         LocalDate endDate = request.getEndDate();
 
+        // 정산 일자 검증 로직
+        if (startDate == null || endDate == null) {
+            throw new IllegalArgumentException("정산 시작일/종료일은 필수입니다.");
+        }
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("정산 시작일은 종료일 이후가 될 수 없습니다.");
+        }
+
         // 여행 찾기
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 여행입니다."));
+
+        LocalDate minStart = trip.getStartDate().minusDays(1);
+        if (startDate.isBefore(minStart)) {
+            throw new IllegalArgumentException(
+                    "정산 시작일은 여행 시작일의 하루 전(" + minStart + ")보다 이전일 수 없습니다."
+            );
+        }
+        if (endDate.isAfter(trip.getEndDate())) {
+            throw new IllegalArgumentException("정산 종료일은 여행 종료일(" + trip.getEndDate() + ") 이후일 수 없습니다.");
+        }
+
+        boolean overlapped = settlementRepository.existsOverlapping(tripId, startDate, endDate);
+        if (overlapped) {
+            throw new IllegalArgumentException("선택한 기간에 이미 생성된 정산이 있어 중복 정산할 수 없습니다.");
+        }
 
         // 정산 대상 멤버 가져오기
         List<TripMember> tripMembers = tripMemberRepository.findAllByTripId(tripId);

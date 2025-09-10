@@ -33,5 +33,6 @@ public class SettlementPageResponse {
     public static class DailyExpenseStatus {
         private LocalDate date;      // 날짜
         private boolean hasExpense;  // 해당 날짜 지출 유무
+        private boolean settled; // 해당 날짜가 정산 완료일인지 여부
     }
 }
