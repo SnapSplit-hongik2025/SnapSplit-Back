@@ -16,7 +16,7 @@ public class OngoingTripResponse {
     private String startDate;
     private String endDate;
     private String tripImage;
-    private List<String> countryNames;
+    private List<String> countries;
 
     public static OngoingTripResponse from(Trip trip, List<String> countryNames) {
         return OngoingTripResponse.builder()
@@ -25,7 +25,7 @@ public class OngoingTripResponse {
                 .startDate(trip.getStartDate().toString())
                 .endDate(trip.getEndDate().toString())
                 .tripImage(trip.getTripImage())
-                .countryNames(countryNames)
+                .countries(countryNames)
                 .build();
     }
 }

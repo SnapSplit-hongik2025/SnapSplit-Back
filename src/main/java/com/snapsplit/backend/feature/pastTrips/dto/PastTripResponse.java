@@ -16,16 +16,16 @@ public class PastTripResponse {
     private LocalDate startDate;
     private LocalDate endDate;
     private String tripImage;
-    private List<String> countryNames;
+    private List<String> countries;
 
-    public static PastTripResponse from(Trip trip, List<String> countryNames) {
+    public static PastTripResponse from(Trip trip, List<String> countries) {
         return new PastTripResponse(
                 trip.getId(),
                 trip.getTripName(),
                 trip.getStartDate(),
                 trip.getEndDate(),
                 trip.getTripImage(),
-                countryNames
+                countries
         );
     }
 }

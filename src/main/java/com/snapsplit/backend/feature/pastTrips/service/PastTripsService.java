@@ -56,7 +56,7 @@ public class PastTripsService {
 
         int totalTrips = items.size();
         int totalCountries = items.stream()
-                .flatMap(t -> t.getCountryNames().stream())
+                .flatMap(t -> t.getCountries().stream())
                 .collect(java.util.stream.Collectors.toSet())
                 .size();
 
