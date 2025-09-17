@@ -28,6 +28,10 @@ public class User {
     private String profileImage;
 
     @Setter
+    @Column(name = "face_image_url")
+    private String faceImageUrl;
+
+    @Setter
     @Column(name = "aws_face_id", length = 100, unique = true)
     private String awsFaceId;
 
