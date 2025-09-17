@@ -1,6 +1,7 @@
 package com.snapsplit.backend.feature.myPage.controller;
 
 import com.snapsplit.backend.domain.user.repository.UserRepository;
+import com.snapsplit.backend.feature.myPage.dto.MyFaceResponse;
 import com.snapsplit.backend.feature.myPage.dto.MyPageResponse;
 import com.snapsplit.backend.feature.myPage.service.MyPageService;
 import com.snapsplit.backend.domain.user.entity.User;
@@ -66,5 +67,21 @@ public class MyPageController {
 
         myPageService.updateProfile(user, name, profileImageUrl);
         return ResponseEntity.ok(ApiResponse.success("프로필 수정 완료", null));
+    }
+
+    // GET /home/myPage/face
+    // 나의 얼굴 관리하기 페이지
+    @Operation(summary = "나의 얼굴 관리 페이지 조회", description = "얼굴 등록 여부와 등록된 얼굴 이미지 URL을 조회합니다.")
+    @GetMapping("/face")
+    public ResponseEntity<ApiResponse<MyFaceResponse>> getMyFacePage(
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        Long userId = principal.getId();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+
+        MyFaceResponse response = myPageService.getMyFaceInfo(user);
+
+        return ResponseEntity.ok(ApiResponse.success("나의 얼굴 정보 조회 성공", response));
     }
 }
