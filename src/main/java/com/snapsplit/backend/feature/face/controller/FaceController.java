@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
-@Tag(name = "SNAP", description = "얼굴 등록, 사진 업로드, 필터링")
+@Tag(name = "마이페이지", description = "마이페이지 조회/수정")
 @Slf4j
 @RestController
 @RequestMapping("/api/snap/face")
