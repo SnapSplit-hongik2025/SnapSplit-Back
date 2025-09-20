@@ -9,9 +9,12 @@ import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.domain.user.entity.User;
 import com.snapsplit.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class JoinTripService {
@@ -19,6 +22,7 @@ public class JoinTripService {
     private final TripRepository tripRepository;
     private final UserRepository userRepository;
     private final TripMemberRepository tripMemberRepository;
+    private final RedisTemplate<String, String> redisTemplate;
 
     // 초대 코드로 여행 참여하기
     @Transactional
@@ -39,6 +43,11 @@ public class JoinTripService {
                 .memberType(MemberType.USER)
                 .build();
         tripMemberRepository.save(tripMember);
+
+        // 여행 멤버가 바뀌었으므로 캐시 삭제
+        String cacheKey = "trip::" + trip.getId() + "::snapReadiness";
+        redisTemplate.delete(cacheKey);
+        log.info("새 멤버 추가로 Snap 준비 상태 캐시 삭제 완료: {}", cacheKey);
 
         return JoinTripResponse.builder()
                 .tripId(trip.getId())
