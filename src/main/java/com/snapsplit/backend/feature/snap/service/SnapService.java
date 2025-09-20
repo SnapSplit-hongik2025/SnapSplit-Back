@@ -1,5 +1,6 @@
 package com.snapsplit.backend.feature.snap.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.snapsplit.backend.config.properties.AwsProperties;
 import com.snapsplit.backend.domain.album.entity.Album;
 import com.snapsplit.backend.domain.album.repository.AlbumRepository;
@@ -11,13 +12,17 @@ import com.snapsplit.backend.domain.tripmember.entity.MemberType;
 import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.domain.user.repository.UserRepository;
+import com.snapsplit.backend.feature.snap.dto.SnapMemberStatusDto;
+import com.snapsplit.backend.feature.snap.dto.SnapReadinessResponse;
 import com.snapsplit.backend.feature.snap.dto.UpdatePhotoTagRequest;
 import com.snapsplit.backend.feature.snap.dto.UploadPhotoResponse;
 import com.snapsplit.backend.global.s3.S3Uploader;
 import com.snapsplit.backend.global.s3.dto.S3UploadResult;
+import com.snapsplit.backend.global.security.SecurityUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +30,7 @@ import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.rekognition.RekognitionClient;
 import software.amazon.awssdk.services.rekognition.model.*;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -38,6 +44,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -54,6 +61,9 @@ public class SnapService {
     private final RekognitionClient rekognitionClient;
     private final AwsProperties awsProperties;
     private final ExifService exifService;
+    private final SecurityUtil securityUtil;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper;
 
     // 여행 사진 업로드 및 자동 태깅
     @Transactional
@@ -317,6 +327,104 @@ public class SnapService {
                 .collect(Collectors.toList());
 
         return createUploadResponse(photo, taggedUsers);
+    }
+
+
+    // SNAP 페이지 준비 상태 조회 기능
+    @Transactional(readOnly = true)
+    public SnapReadinessResponse getSnapReadiness(Long tripId) {
+        Long currentUserId = securityUtil.getCurrentUserId();
+        String cacheKey = "trip::" + tripId + "::snapReadiness";
+
+        // 1. Redis 캐시 확인
+        String cachedData = redisTemplate.opsForValue().get(cacheKey);
+
+        List<SnapMemberStatusDto> members;
+
+        if (cachedData != null) {
+            // [Cache Hit] 캐시가 있으면, 캐시 데이터 사용
+            log.info("Cache HIT for key: {}", cacheKey);
+            try {
+                // Redis에 저장된 JSON 문자열을 DTO 리스트로 변환
+                members = objectMapper.readValue(cachedData, new TypeReference<>() {});
+            } catch (IOException e) {
+                log.error("Redis cache parsing error", e);
+                // 파싱 실패 시 DB 조회로 fallback
+                return buildResponseFromDB(tripId, currentUserId);
+            }
+        } else {
+            // [Cache Miss] 캐시가 없으면, DB에서 조회하고 Redis에 저장
+            log.info("Cache MISS for key: {}", cacheKey);
+            return buildResponseFromDB(tripId, currentUserId);
+        }
+
+        // 2. isCurrentUser 동적 추가 및 allMembersRegistered 계산
+        final List<SnapMemberStatusDto> finalMembers = members.stream()
+                .map(member -> SnapMemberStatusDto.builder()
+                        .userId(member.getUserId())
+                        .name(member.getName())
+                        .profileImageUrl(member.getProfileImageUrl())
+                        .hasFaceData(member.isHasFaceData())
+                        .isCurrentUser(member.getUserId().equals(currentUserId))
+                        .build())
+                .collect(Collectors.toList());
+
+        boolean allMembersRegistered = finalMembers.stream().allMatch(SnapMemberStatusDto::isHasFaceData);
+
+        return SnapReadinessResponse.builder()
+                .allMembersRegistered(allMembersRegistered)
+                .members(finalMembers)
+                .build();
+    }
+
+    private SnapReadinessResponse buildResponseFromDB(Long tripId, Long currentUserId) {
+        // 1. DB에서 여행 멤버 조회 및 인가 확인
+        List<TripMember> tripMembers = tripMemberRepository.findByTripIdWithUser(tripId);
+        if (tripMembers.isEmpty()) {
+            throw new EntityNotFoundException("해당 여행을 찾을 수 없거나 멤버가 없습니다.");
+        }
+        tripMembers.stream()
+                .filter(tm -> tm.getUser().getId().equals(currentUserId))
+                .findFirst()
+                .orElseThrow(() -> new SecurityException("해당 여행의 멤버가 아닙니다."));
+
+        // 2. DTO 리스트 생성 (isCurrentUser 제외)
+        List<SnapMemberStatusDto> membersToCache = tripMembers.stream()
+                .map(tm -> SnapMemberStatusDto.builder()
+                        .userId(tm.getUser().getId())
+                        .name(tm.getUser().getName())
+                        .profileImageUrl(tm.getUser().getProfileImage())
+                        .hasFaceData(tm.getUser().getFaceImageUrl() != null)
+                        .isCurrentUser(false) // 캐시에는 isCurrentUser를 false로 저장
+                        .build())
+                .collect(Collectors.toList());
+
+        // 3. Redis에 캐시 저장 (유효기간: 1일)
+        try {
+            String cacheValue = objectMapper.writeValueAsString(membersToCache);
+            String cacheKey = "trip::" + tripId + "::snapReadiness";
+            redisTemplate.opsForValue().set(cacheKey, cacheValue, 1, TimeUnit.DAYS);
+        } catch (IOException e) {
+            log.error("Redis cache serialization error", e);
+        }
+
+        // 4. isCurrentUser 동적 추가 및 최종 응답 생성
+        List<SnapMemberStatusDto> finalMembers = membersToCache.stream()
+                .map(member -> SnapMemberStatusDto.builder()
+                        .userId(member.getUserId())
+                        .name(member.getName())
+                        .profileImageUrl(member.getProfileImageUrl())
+                        .hasFaceData(member.isHasFaceData())
+                        .isCurrentUser(member.getUserId().equals(currentUserId))
+                        .build())
+                .collect(Collectors.toList());
+
+        boolean allMembersRegistered = finalMembers.stream().allMatch(SnapMemberStatusDto::isHasFaceData);
+
+        return SnapReadinessResponse.builder()
+                .allMembersRegistered(allMembersRegistered)
+                .members(finalMembers)
+                .build();
     }
 
 }
