@@ -35,6 +35,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -51,6 +53,7 @@ public class SnapService {
     private final S3Uploader s3Uploader;
     private final RekognitionClient rekognitionClient;
     private final AwsProperties awsProperties;
+    private final ExifService exifService;
 
     // 여행 사진 업로드 및 자동 태깅
     @Transactional
@@ -72,10 +75,34 @@ public class SnapService {
     // 단일 이미지를 처리하는 전체 과정을 담당
     private UploadPhotoResponse processSingleImage(Album album, MultipartFile imageFile, int maxFacesToDetect) {
         try {
-            // 1. S3 업로드 및 Photo 엔티티 저장
+
+            ExifService.ExifData exif = exifService.extract(imageFile).orElse(null);
+            Double lat = null, lon = null;
+            LocalDateTime takenAt = null;
+
+            if (exif != null) {
+                lat = exif.getLatitude();
+                lon = exif.getLongitude();
+
+                if (exif.getTakenAtLocal() != null) {
+                    takenAt = LocalDateTime.ofInstant(
+                            exif.getTakenAtLocal().toInstant(),
+                            ZoneId.systemDefault()
+                    );
+                }
+            }
+
+            // 1-1. S3 업로드
             S3UploadResult uploadResult = s3Uploader.upload(imageFile, "photos");
+            // 1-2. Photo 저장 (EXIF 메타데이터 포함)
             Photo savedPhoto = photoRepository.save(
-                    Photo.builder().album(album).s3Url(uploadResult.getFileUrl()).build()
+                    Photo.builder()
+                            .album(album)
+                            .s3Url(uploadResult.getFileUrl())
+                            .photoDt(takenAt)
+                            .latitude(lat)
+                            .longitude(lon)
+                            .build()
             );
             log.info("===== [Photo: {}] 분석 시작 =====", imageFile.getOriginalFilename());
 
@@ -200,6 +227,9 @@ public class SnapService {
                 .photoId(photo.getId())
                 .photoUrl(photo.getS3Url())
                 .taggedUsers(taggedUsers)
+                .takenAt(photo.getPhotoDt())
+                .latitude(photo.getLatitude())
+                .longitude(photo.getLongitude())
                 .build();
     }
 
