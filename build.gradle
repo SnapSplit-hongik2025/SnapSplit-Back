@@ -52,6 +52,9 @@ dependencies {
 
     implementation platform("com.google.cloud:libraries-bom:26.49.0")
     implementation "com.google.cloud:google-cloud-document-ai"
+
+    // EXIF 메타데이터 추출
+    implementation 'com.drewnoakes:metadata-extractor:2.18.0'
 }
 
 tasks.named('test') {
