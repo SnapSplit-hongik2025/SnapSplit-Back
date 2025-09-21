@@ -1,15 +1,14 @@
 package com.snapsplit.backend.feature.snap.controller;
 
-import com.snapsplit.backend.feature.snap.dto.DeletePhotoRequest;
-import com.snapsplit.backend.feature.snap.dto.SnapReadinessResponse;
-import com.snapsplit.backend.feature.snap.dto.UpdatePhotoTagRequest;
-import com.snapsplit.backend.feature.snap.dto.UploadPhotoResponse;
+import com.snapsplit.backend.feature.snap.dto.*;
 import com.snapsplit.backend.feature.snap.service.SnapService;
 import com.snapsplit.backend.global.aop.CheckTripMember;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +32,17 @@ public class SnapController {
     ) {
         SnapReadinessResponse response = snapService.getSnapReadiness(tripId);
         return ResponseEntity.ok(ApiResponse.success("SNAP 준비 상태 조회 성공", response));
+    }
+
+    @CheckTripMember
+    @GetMapping("/photos")
+    @Operation(summary = "Snap 사진 목록 조회", description = "여행에 업로드된 사진들을 페이지네이션으로 조회합니다.")
+    public ResponseEntity<ApiResponse<PhotoPageResponse>> getSnapPhotos(
+            @PathVariable Long tripId,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        PhotoPageResponse response = snapService.getSnapPhotos(tripId, pageable);
+        return ResponseEntity.ok(ApiResponse.success("사진 목록 조회 성공", response));
     }
 
     @CheckTripMember
