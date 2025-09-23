@@ -1,14 +1,14 @@
 package com.snapsplit.backend.feature.snap.controller;
 
-import com.snapsplit.backend.feature.snap.dto.DeletePhotoRequest;
-import com.snapsplit.backend.feature.snap.dto.UpdatePhotoTagRequest;
-import com.snapsplit.backend.feature.snap.dto.UploadPhotoResponse;
+import com.snapsplit.backend.feature.snap.dto.*;
 import com.snapsplit.backend.feature.snap.service.SnapService;
 import com.snapsplit.backend.global.aop.CheckTripMember;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +23,27 @@ import java.util.List;
 public class SnapController {
 
     private final SnapService snapService;
+
+    @CheckTripMember
+    @GetMapping("/readiness")
+    @Operation(summary = "SNAP 페이지 멤버 상태 조회", description = "모든 여행 멤버의 얼굴 등록 여부를 확인합니다.")
+    public ResponseEntity<ApiResponse<SnapReadinessResponse>> getSnapReadiness(
+            @PathVariable Long tripId
+    ) {
+        SnapReadinessResponse response = snapService.getSnapReadiness(tripId);
+        return ResponseEntity.ok(ApiResponse.success("SNAP 준비 상태 조회 성공", response));
+    }
+
+    @CheckTripMember
+    @GetMapping("/photos")
+    @Operation(summary = "Snap 사진 목록 조회", description = "여행에 업로드된 사진들을 페이지네이션으로 조회합니다.")
+    public ResponseEntity<ApiResponse<PhotoPageResponse>> getSnapPhotos(
+            @PathVariable Long tripId,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        PhotoPageResponse response = snapService.getSnapPhotos(tripId, pageable);
+        return ResponseEntity.ok(ApiResponse.success("사진 목록 조회 성공", response));
+    }
 
     @CheckTripMember
     @PostMapping(value = "/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

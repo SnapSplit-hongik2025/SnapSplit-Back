@@ -57,4 +57,17 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
 
     int countByTrip_IdAndMemberType(Long tripId, MemberType memberType);
     List<TripMember> findAllByIdInAndTrip_Id(List<Long> ids, Long tripId);
+
+    /**
+     * 특정 여행 ID에 해당하는 모든 TripMember를 조회할 때,
+     * 관련된 User 엔티티를 함께 즉시 로딩(Eager Loading)합니다.
+     * N+1 문제를 방지하여 성능을 최적화합니다.
+     * @param tripId 조회할 여행의 ID
+     * @return User 정보가 포함된 TripMember 리스트
+     */
+    @Query("SELECT tm FROM TripMember tm JOIN FETCH tm.user WHERE tm.trip.id = :tripId")
+    List<TripMember> findByTripIdWithUser(@Param("tripId") Long tripId);
+
+    List<TripMember> findByUser(User user);
+
 }

@@ -1,6 +1,8 @@
 package com.snapsplit.backend.feature.face.service;
 
 import com.snapsplit.backend.config.properties.AwsProperties;
+import com.snapsplit.backend.domain.tripmember.entity.TripMember;
+import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.domain.user.entity.User;
 import com.snapsplit.backend.domain.user.repository.UserRepository;
 import com.snapsplit.backend.global.s3.S3Uploader;
@@ -8,13 +10,17 @@ import com.snapsplit.backend.global.s3.dto.S3UploadResult;
 import com.snapsplit.backend.global.security.SecurityUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.services.rekognition.RekognitionClient;
 import software.amazon.awssdk.services.rekognition.model.*;
 import java.io.IOException;
+import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FaceService {
@@ -24,6 +30,8 @@ public class FaceService {
     private final AwsProperties awsProperties;
     private final SecurityUtil securityUtil;
     private final S3Uploader s3Uploader;
+    private final TripMemberRepository tripMemberRepository;
+    private final RedisTemplate<String, String> redisTemplate;
 
 
     @Transactional
@@ -38,6 +46,7 @@ public class FaceService {
 
         // 2. 새로운 얼굴 정보 등록 진행
         registerNewFaceData(user, faceImage);
+        invalidateSnapReadinessCacheForUser(user); // 레디스 무효화
     }
 
     @Transactional
@@ -127,6 +136,20 @@ public class FaceService {
         long maxSize = 5 * 1024 * 1024; // 5MB
         if (fileSize > maxSize) {
             throw new IllegalArgumentException("이미지 파일 용량은 5MB를 초과할 수 없습니다.");
+        }
+    }
+
+    // Redis 무효화
+    private void invalidateSnapReadinessCacheForUser(User user) {
+        // 1. 사용자가 속한 모든 여행 멤버 정보를 조회합니다.
+        List<TripMember> userTrips = tripMemberRepository.findByUser(user);
+
+        // 2. 각 여행에 대해 캐시를 삭제합니다.
+        for (TripMember tripMember : userTrips) {
+            Long tripId = tripMember.getTrip().getId();
+            String cacheKey = "trip::" + tripId + "::snapReadiness";
+            redisTemplate.delete(cacheKey);
+            log.info("Snap 준비 상태 캐시 삭제 완료: {}", cacheKey);
         }
     }
 }

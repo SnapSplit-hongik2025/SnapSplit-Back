@@ -1,5 +1,7 @@
 package com.snapsplit.backend.feature.snap.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import com.snapsplit.backend.config.properties.AwsProperties;
 import com.snapsplit.backend.domain.album.entity.Album;
 import com.snapsplit.backend.domain.album.repository.AlbumRepository;
@@ -11,13 +13,18 @@ import com.snapsplit.backend.domain.tripmember.entity.MemberType;
 import com.snapsplit.backend.domain.tripmember.entity.TripMember;
 import com.snapsplit.backend.domain.tripmember.repository.TripMemberRepository;
 import com.snapsplit.backend.domain.user.repository.UserRepository;
-import com.snapsplit.backend.feature.snap.dto.UpdatePhotoTagRequest;
-import com.snapsplit.backend.feature.snap.dto.UploadPhotoResponse;
+import com.snapsplit.backend.feature.snap.dto.*;
 import com.snapsplit.backend.global.s3.S3Uploader;
 import com.snapsplit.backend.global.s3.dto.S3UploadResult;
+import com.snapsplit.backend.global.security.SecurityUtil;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +32,9 @@ import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.rekognition.RekognitionClient;
 import software.amazon.awssdk.services.rekognition.model.*;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -38,7 +48,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -54,6 +66,29 @@ public class SnapService {
     private final RekognitionClient rekognitionClient;
     private final AwsProperties awsProperties;
     private final ExifService exifService;
+    private final SecurityUtil securityUtil;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper;
+    @Value("${snap.readiness-check-enabled}")
+    private boolean readinessCheckEnabled;
+
+    // Redis에 저장될 공용 데이터 전체를 감싸는 DTO
+    @Getter
+    @Builder
+    private static class CachedSnapStatus {
+        private boolean allMembersRegistered;
+        private List<CachedMemberStatus> members;
+    }
+
+    // Redis에 저장될 멤버 한 명의 공용 정보 DTO
+    @Getter
+    @Builder
+    private static class CachedMemberStatus {
+        private Long userId;
+        private String name;
+        private String profileImageUrl;
+        private boolean hasFaceData;
+    }
 
     // 여행 사진 업로드 및 자동 태깅
     @Transactional
@@ -318,5 +353,167 @@ public class SnapService {
 
         return createUploadResponse(photo, taggedUsers);
     }
+
+
+    // SNAP 페이지 준비 상태 조회 기능
+    public SnapReadinessResponse getSnapReadiness(Long tripId) {
+        Long currentUserId = securityUtil.getCurrentUserId();
+        String cacheKey = "trip::" + tripId + "::snapReadiness";
+
+        try {
+            // 1. Redis에서 캐시된 "공용 정보"를 먼저 조회
+            String cachedDataJson = redisTemplate.opsForValue().get(cacheKey);
+            CachedSnapStatus cachedStatus;
+
+            if (cachedDataJson != null) {
+                // [Cache Hit] 캐시가 있다면, "공용 정보" DTO로 변환
+                log.info("Cache HIT for key: {}", cacheKey);
+                cachedStatus = objectMapper.readValue(cachedDataJson, CachedSnapStatus.class);
+                boolean isMember = cachedStatus.getMembers().stream()
+                        .anyMatch(m->m.getUserId().equals(currentUserId));
+                if(!isMember) {throw new SecurityException("해당 여행의 멤버가 아닙니다.");
+                }} else {
+                // [Cache Miss] 캐시가 없다면, DB에서 정보를 조회하고 새로운 "공용 정보" 캐시를 생성
+                log.info("Cache MISS for key: {}", cacheKey);
+
+                List<TripMember> membersFromDb = tripMemberRepository.findByTripIdWithUser(tripId);
+                if (membersFromDb.isEmpty()) {
+                    throw new EntityNotFoundException("해당 여행을 찾을 수 없거나 멤버가 없습니다.");
+                }
+                // 인가 확인: 요청한 사용자가 이 여행의 멤버인지 확인
+                membersFromDb.stream()
+                        .filter(tm -> tm.getUser().getId().equals(currentUserId))
+                        .findFirst()
+                        .orElseThrow(() -> new SecurityException("해당 여행의 멤버가 아닙니다."));
+
+                // DB 결과를 "공용 정보" DTO 리스트로 변환합니다.
+                List<CachedMemberStatus> memberStatusList = membersFromDb.stream()
+                        .map(tm -> CachedMemberStatus.builder()
+                                .userId(tm.getUser().getId())
+                                .name(tm.getUser().getName())
+                                .profileImageUrl(tm.getUser().getProfileImage())
+                                .hasFaceData(tm.getUser().getFaceImageUrl() != null)
+                                .build())
+                        .collect(Collectors.toList());
+
+                boolean allRegistered = memberStatusList.stream().allMatch(CachedMemberStatus::isHasFaceData);
+
+                cachedStatus = CachedSnapStatus.builder()
+                        .allMembersRegistered(allRegistered)
+                        .members(memberStatusList)
+                        .build();
+
+                // 생성된 "공용 정보"를 JSON으로 변환하여 Redis에 저장
+                redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(cachedStatus));
+            }
+
+            // 2. 최종적으로, "공용 정보"에 "개인 정보(isCurrentUser)"를 동적으로 추가하여 프론트엔드에 응답
+            List<SnapMemberStatusDto> finalMemberList = cachedStatus.getMembers().stream()
+                    .map(cm -> SnapMemberStatusDto.builder()
+                            .userId(cm.getUserId())
+                            .name(cm.getName())
+                            .profileImageUrl(cm.getProfileImageUrl())
+                            .hasFaceData(cm.isHasFaceData())
+                            .isCurrentUser(cm.getUserId().equals(currentUserId)) // ★★★ 이 부분에서 동적으로 계산!
+                            .build())
+                    .collect(Collectors.toList());
+
+            return SnapReadinessResponse.builder()
+                    .allMembersRegistered(cachedStatus.isAllMembersRegistered())
+                    .members(finalMemberList)
+                    .build();
+
+        } catch (IOException e) {
+            // JSON 처리 중 에러 발생 시
+            log.warn("Redis 캐시 역직렬화 실패. 캐시 삭제 후 DB 폴백 시도. key={}", cacheKey, e);
+            redisTemplate.delete(cacheKey);
+            // 폴백: DB에서 재생성
+            return getSnapReadiness(tripId);
+        }
+    }
+
+
+    // 특정 여행의 사진 목록을 페이지네이션으로 조회
+    @Transactional(readOnly = true)
+    public PhotoPageResponse getSnapPhotos(Long tripId, Pageable pageable) {
+
+        // 1. AOP로 분리할 보안 검사 로직 (개발 중에는 yml 스위치로 제어)
+        verifySnapReadiness(tripId);
+
+        // 2. 정렬 로직
+        Sort originalSort = pageable.getSort();
+        Sort finalSort;
+
+        if (originalSort.isSorted()) {
+            Stream<Sort.Order> translatedOrders = originalSort.stream()
+                    .map(order -> {
+                        // 만약 정렬 기준이 'photoDate'라면,
+                        if (order.getProperty().equals("photoDate")) {
+                            // 실제 엔티티 필드명인 'photoDt'로 바꿔줍니다. (정렬 방향은 그대로 유지)
+                            return new Sort.Order(order.getDirection(), "photoDt");
+                        }
+                        // 다른 정렬 기준은 그대로 둡니다.
+                        return order;
+                    });
+            finalSort = Sort.by(translatedOrders.toList());
+        } else {
+            // 4. 정렬 요청이 없다면, 우리의 기본 정렬 규칙을 '내부용 이름'으로 적용합니다.
+            finalSort = Sort.by(
+                    Sort.Order.desc("photoDt").with(Sort.NullHandling.NULLS_LAST),
+                    Sort.Order.desc("id")
+            );
+        }
+        Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), finalSort);
+
+        // 3. 앨범 조회 및 사진 목록 조회
+        Album album = albumRepository.findByTripId(tripId)
+                .orElseThrow(() -> new EntityNotFoundException("해당 여행의 앨범을 찾을 수 없습니다."));
+
+        Page<Photo> photoPage = photoRepository.findByAlbum_Id(album.getId(), sortedPageable);
+        List<Photo> photos = photoPage.getContent();
+
+        // 4. N+1 문제 해결을 위한 태그 정보 조회
+        List<Long> photoIds = photos.stream().map(Photo::getId).collect(Collectors.toList());
+        List<PhotoTag> tags = photoTagRepository.findByPhotoIdIn(photoIds);
+        Map<Long, List<PhotoPageResponse.TaggedUserDto>> tagsByPhotoId = tags.stream()
+                .collect(Collectors.groupingBy(
+                        tag -> tag.getPhoto().getId(),
+                        Collectors.mapping(tag -> PhotoPageResponse.TaggedUserDto.builder()
+                                .userId(tag.getUser().getId())
+                                .name(tag.getUser().getName())
+                                .build(), Collectors.toList())
+                ));
+
+        // 5. 최종 응답 DTO 조립
+        List<PhotoPageResponse.PhotoDetailDto> photoDetailDtos = photos.stream()
+                .map(photo -> PhotoPageResponse.PhotoDetailDto.builder()
+                        .photoId(photo.getId())
+                        .photoUrl(photo.getS3Url())
+                        .photoDate(photo.getPhotoDt() != null ? photo.getPhotoDt().toLocalDate() : null)
+                        .taggedUsers(tagsByPhotoId.getOrDefault(photo.getId(), Collections.emptyList()))
+                        .build())
+                .collect(Collectors.toList());
+
+        // 6. 페이지 정보와 함께 최종 응답 반환
+        return PhotoPageResponse.builder()
+                .photos(photoDetailDtos)
+                .currentPage(photoPage.getNumber())
+                .totalPages(photoPage.getTotalPages())
+                .totalElements(photoPage.getTotalElements())
+                .isLast(photoPage.isLast())
+                .build();
+    }
+
+    private void verifySnapReadiness(Long tripId) {
+        if (readinessCheckEnabled) {
+            List<TripMember> members = tripMemberRepository.findByTripIdWithUser(tripId);
+            boolean allRegistered = members.stream()
+                    .allMatch(member -> member.getUser().getFaceImageUrl() != null);
+            if (!allRegistered) {
+                throw new IllegalStateException("모든 여행 멤버의 얼굴이 등록되지 않아 Snap 기능을 사용할 수 없습니다.");
+            }
+        }
+    }
+
 
 }
