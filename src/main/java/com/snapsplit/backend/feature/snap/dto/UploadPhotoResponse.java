@@ -15,8 +15,6 @@ public class UploadPhotoResponse {
 
     // 사진 메타데이터
     private final LocalDateTime takenAt;
-    private final Double latitude;
-    private final Double longitude;
 
     @Builder
     public UploadPhotoResponse(
@@ -31,8 +29,6 @@ public class UploadPhotoResponse {
         this.photoUrl = photoUrl;
         this.taggedUsers = taggedUsers;
         this.takenAt = takenAt;
-        this.latitude = latitude;
-        this.longitude = longitude;
     }
 
     @Getter

@@ -24,14 +24,6 @@ public class ExifService {
         try (InputStream in = file.getInputStream()) {
             Metadata metadata = ImageMetadataReader.readMetadata(in);
 
-            // GPS 좌표
-            Double lat = null, lon = null;
-            GpsDirectory gps = metadata.getFirstDirectoryOfType(GpsDirectory.class);
-            if (gps != null && gps.getGeoLocation() != null) {
-                lat = gps.getGeoLocation().getLatitude();
-                lon = gps.getGeoLocation().getLongitude();
-            }
-
             // 촬영 시간
             Date takenAt = null;
             ExifSubIFDDirectory exif = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
@@ -42,11 +34,7 @@ public class ExifService {
                 }
             }
 
-            if (lat == null && lon == null && takenAt == null) {
-                return Optional.empty();
-            }
-
-            return Optional.of(new ExifData(lat, lon, takenAt));
+            return Optional.of(new ExifData(takenAt));
         } catch (Exception e) {
             return Optional.empty();
         }
@@ -54,8 +42,6 @@ public class ExifService {
 
     @Value
     public static class ExifData {
-        Double latitude;      // 위도
-        Double longitude;     // 경도
         Date takenAtLocal;    // 촬영 시각 (타임존 정보 없음)
     }
 }

@@ -112,13 +112,9 @@ public class SnapService {
         try {
 
             ExifService.ExifData exif = exifService.extract(imageFile).orElse(null);
-            Double lat = null, lon = null;
             LocalDateTime takenAt = null;
 
             if (exif != null) {
-                lat = exif.getLatitude();
-                lon = exif.getLongitude();
-
                 if (exif.getTakenAtLocal() != null) {
                     takenAt = LocalDateTime.ofInstant(
                             exif.getTakenAtLocal().toInstant(),
@@ -135,8 +131,6 @@ public class SnapService {
                             .album(album)
                             .s3Url(uploadResult.getFileUrl())
                             .photoDt(takenAt)
-                            .latitude(lat)
-                            .longitude(lon)
                             .build()
             );
             log.info("===== [Photo: {}] 분석 시작 =====", imageFile.getOriginalFilename());
