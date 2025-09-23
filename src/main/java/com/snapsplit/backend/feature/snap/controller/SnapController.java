@@ -1,11 +1,13 @@
 package com.snapsplit.backend.feature.snap.controller;
 
 import com.snapsplit.backend.feature.snap.dto.*;
+import com.snapsplit.backend.feature.snap.service.DownloadService;
 import com.snapsplit.backend.feature.snap.service.SnapService;
 import com.snapsplit.backend.global.aop.CheckTripMember;
 import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -16,13 +18,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
-@Tag(name = "SNAP", description = "얼굴 등록, 사진 업로드, 필터링")
+@Tag(name = "SNAP", description = "얼굴 등록, 사진 업로드, 필터링, 사진 ZIP 다운로드")
 @RestController
 @RequestMapping("/trips/{tripId}/snap")
 @RequiredArgsConstructor
 public class SnapController {
 
     private final SnapService snapService;
+    private final DownloadService downloadService;
 
     @CheckTripMember
     @GetMapping("/readiness")
@@ -90,6 +93,17 @@ public class SnapController {
     ) {
         UploadPhotoResponse responseData = snapService.updatePhotoTags(tripId, photoId, request);
         return ResponseEntity.ok(ApiResponse.success("사진의 인물 태그가 성공적으로 수정되었습니다.", responseData));
+    }
+
+    @CheckTripMember
+    @Operation(summary = "선택한 사진들을 ZIP 파일로 다운로드")
+    @PostMapping("/download")
+    public void downloadPhotos(
+            @PathVariable Long tripId,
+            @RequestBody DownloadRequest request,
+            HttpServletResponse response
+    ) throws Exception {
+        downloadService.streamZip(tripId, request, response);
     }
 
 }
