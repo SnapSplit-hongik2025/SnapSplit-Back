@@ -430,72 +430,36 @@ public class SnapService {
     // 특정 여행의 사진 목록을 페이지네이션으로 조회
     @Transactional(readOnly = true)
     public PhotoPageResponse getSnapPhotos(Long tripId, Pageable pageable) {
-
-        // 1. AOP로 분리할 보안 검사 로직 (개발 중에는 yml 스위치로 제어)
-        verifySnapReadiness(tripId);
-
-        // 2. 정렬 로직
-        Sort originalSort = pageable.getSort();
-        Sort finalSort;
-
-        if (originalSort.isSorted()) {
-            Stream<Sort.Order> translatedOrders = originalSort.stream()
-                    .map(order -> {
-                        // 만약 정렬 기준이 'photoDate'라면,
-                        if (order.getProperty().equals("photoDate")) {
-                            // 실제 엔티티 필드명인 'photoDt'로 바꿔줍니다. (정렬 방향은 그대로 유지)
-                            return new Sort.Order(order.getDirection(), "photoDt");
-                        }
-                        // 다른 정렬 기준은 그대로 둡니다.
-                        return order;
-                    });
-            finalSort = Sort.by(translatedOrders.toList());
-        } else {
-            // 4. 정렬 요청이 없다면, 우리의 기본 정렬 규칙을 '내부용 이름'으로 적용합니다.
-            finalSort = Sort.by(
-                    Sort.Order.desc("photoDt").with(Sort.NullHandling.NULLS_LAST),
-                    Sort.Order.desc("id")
-            );
-        }
-        Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), finalSort);
-
-        // 3. 앨범 조회 및 사진 목록 조회
         Album album = albumRepository.findByTripId(tripId)
                 .orElseThrow(() -> new EntityNotFoundException("해당 여행의 앨범을 찾을 수 없습니다."));
 
+        Pageable sortedPageable = createSortedPageable(pageable);
+
         Page<Photo> photoPage = photoRepository.findByAlbum_Id(album.getId(), sortedPageable);
-        List<Photo> photos = photoPage.getContent();
 
-        // 4. N+1 문제 해결을 위한 태그 정보 조회
-        List<Long> photoIds = photos.stream().map(Photo::getId).collect(Collectors.toList());
-        List<PhotoTag> tags = photoTagRepository.findByPhotoIdIn(photoIds);
-        Map<Long, List<PhotoPageResponse.TaggedUserDto>> tagsByPhotoId = tags.stream()
-                .collect(Collectors.groupingBy(
-                        tag -> tag.getPhoto().getId(),
-                        Collectors.mapping(tag -> PhotoPageResponse.TaggedUserDto.builder()
-                                .userId(tag.getUser().getId())
-                                .name(tag.getUser().getName())
-                                .build(), Collectors.toList())
-                ));
+        return buildPhotoPageResponse(photoPage);
+    }
 
-        // 5. 최종 응답 DTO 조립
-        List<PhotoPageResponse.PhotoDetailDto> photoDetailDtos = photos.stream()
-                .map(photo -> PhotoPageResponse.PhotoDetailDto.builder()
-                        .photoId(photo.getId())
-                        .photoUrl(photo.getS3Url())
-                        .photoDate(photo.getPhotoDt() != null ? photo.getPhotoDt().toLocalDate() : null)
-                        .taggedUsers(tagsByPhotoId.getOrDefault(photo.getId(), Collections.emptyList()))
-                        .build())
-                .collect(Collectors.toList());
+    // 특정 여행에서 특정 멤버가 태그된 사진 목록을 페이지네이션으로 조회
+    @Transactional(readOnly = true)
+    public PhotoPageResponse getSnapPhotosByMember(Long tripId, Long memberId, Pageable pageable) {
 
-        // 6. 페이지 정보와 함께 최종 응답 반환
-        return PhotoPageResponse.builder()
-                .photos(photoDetailDtos)
-                .currentPage(photoPage.getNumber())
-                .totalPages(photoPage.getTotalPages())
-                .totalElements(photoPage.getTotalElements())
-                .isLast(photoPage.isLast())
-                .build();
+        // 요청한 memberId가 실제로 해당 tripId에 속한 멤버인지 먼저 확인합니다.
+        boolean isMember = tripMemberRepository.existsByTrip_IdAndUser_Id(tripId, memberId);
+        if (!isMember) {
+            // 멤버가 아니라면, 사진을 찾을 필요도 없이 바로 404 에러를 발생시킵니다.
+            throw new EntityNotFoundException("해당 여행에 존재하지 않는 멤버입니다. (ID: " + memberId + ")");
+        }
+
+        Album album = albumRepository.findByTripId(tripId)
+                .orElseThrow(() -> new EntityNotFoundException("해당 여행의 앨범을 찾을 수 없습니다."));
+
+        Pageable sortedPageable = createSortedPageable(pageable);
+
+        // Repository에 새로 추가한 메서드를 호출합니다.
+        Page<Photo> photoPage = photoRepository.findTaggedPhotosByAlbumAndUser(album.getId(), memberId, sortedPageable);
+
+        return buildPhotoPageResponse(photoPage);
     }
 
     private void verifySnapReadiness(Long tripId) {
@@ -508,6 +472,61 @@ public class SnapService {
             }
         }
     }
+
+
+    private PhotoPageResponse buildPhotoPageResponse(Page<Photo> photoPage) {
+        List<Photo> photos = photoPage.getContent();
+
+        // N+1 문제 해결을 위한 태그 정보 조회
+        List<Long> photoIds = photos.stream().map(Photo::getId).collect(Collectors.toList());
+        List<PhotoTag> tags = photoTagRepository.findByPhotoIdIn(photoIds);
+        Map<Long, List<PhotoPageResponse.TaggedUserDto>> tagsByPhotoId = tags.stream()
+                .collect(Collectors.groupingBy(
+                        tag -> tag.getPhoto().getId(),
+                        Collectors.mapping(tag -> PhotoPageResponse.TaggedUserDto.builder()
+                                .userId(tag.getUser().getId())
+                                .name(tag.getUser().getName())
+                                .build(), Collectors.toList())
+                ));
+
+        // 최종 응답 DTO 조립
+        List<PhotoPageResponse.PhotoDetailDto> photoDetailDtos = photos.stream()
+                .map(photo -> PhotoPageResponse.PhotoDetailDto.builder()
+                        .photoId(photo.getId())
+                        .photoUrl(photo.getS3Url())
+                        .photoDate(photo.getPhotoDt() != null ? photo.getPhotoDt().toLocalDate() : null)
+                        .taggedUsers(tagsByPhotoId.getOrDefault(photo.getId(), Collections.emptyList()))
+                        .build())
+                .collect(Collectors.toList());
+
+        return PhotoPageResponse.builder()
+                .photos(photoDetailDtos)
+                .currentPage(photoPage.getNumber())
+                .totalPages(photoPage.getTotalPages())
+                .totalElements(photoPage.getTotalElements())
+                .isLast(photoPage.isLast())
+                .build();
+    }
+
+
+    private Pageable createSortedPageable(Pageable pageable) {
+        Sort originalSort = pageable.getSort();
+        Sort finalSort;
+
+        if (originalSort.isSorted()) {
+            Stream<Sort.Order> translatedOrders = originalSort.stream()
+                    .map(order -> "photoDate".equals(order.getProperty()) ?
+                            new Sort.Order(order.getDirection(), "photoDt") : order);
+            finalSort = Sort.by(translatedOrders.toList());
+        } else {
+            finalSort = Sort.by(
+                    Sort.Order.desc("photoDt").with(Sort.NullHandling.NULLS_LAST),
+                    Sort.Order.desc("id")
+            );
+        }
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), finalSort);
+    }
+
 
 
 }
