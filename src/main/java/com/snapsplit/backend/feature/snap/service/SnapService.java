@@ -369,7 +369,10 @@ public class SnapService {
                 // [Cache Hit] 캐시가 있다면, "공용 정보" DTO로 변환
                 log.info("Cache HIT for key: {}", cacheKey);
                 cachedStatus = objectMapper.readValue(cachedDataJson, CachedSnapStatus.class);
-            } else {
+                boolean isMember = cachedStatus.getMembers().stream()
+                        .anyMatch(m->m.getUserId().equals(currentUserId));
+                if(!isMember) {throw new SecurityException("해당 여행의 멤버가 아닙니다.");
+                }} else {
                 // [Cache Miss] 캐시가 없다면, DB에서 정보를 조회하고 새로운 "공용 정보" 캐시를 생성
                 log.info("Cache MISS for key: {}", cacheKey);
 
@@ -422,8 +425,10 @@ public class SnapService {
 
         } catch (IOException e) {
             // JSON 처리 중 에러 발생 시
-            log.error("Redis 캐시 처리 중 오류 발생", e);
-            throw new RuntimeException("캐시 데이터를 처리하는 중 오류가 발생했습니다.");
+            log.warn("Redis 캐시 역직렬화 실패. 캐시 삭제 후 DB 폴백 시도. key={}", cacheKey, e);
+            redisTemplate.delete(cacheKey);
+            // 폴백: DB에서 재생성
+            return getSnapReadiness(tripId);
         }
     }
 
