@@ -36,6 +36,13 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(400, e.getMessage()));
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalState(IllegalStateException e) {
+        final int statusCode = HttpStatus.FORBIDDEN.value();
+        final ApiResponse<Void> response = ApiResponse.fail(statusCode, e.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
         log.error("예상치 못한 오류 발생", ex);
