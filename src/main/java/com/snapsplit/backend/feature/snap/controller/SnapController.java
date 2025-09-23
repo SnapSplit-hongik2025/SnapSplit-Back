@@ -46,6 +46,18 @@ public class SnapController {
     }
 
     @CheckTripMember
+    @GetMapping("/folders/{memberId}")
+    @Operation(summary = "인물별 폴더 상세 조회", description = "특정 멤버가 태그된 사진들을 페이지네이션으로 조회합니다.")
+    public ResponseEntity<ApiResponse<PhotoPageResponse>> getSnapPhotosByMember(
+            @PathVariable Long tripId,
+            @PathVariable Long memberId,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        PhotoPageResponse response = snapService.getSnapPhotosByMember(tripId, memberId, pageable);
+        return ResponseEntity.ok(ApiResponse.success("인물별 사진 목록 조회 성공", response));
+    }
+
+    @CheckTripMember
     @PostMapping(value = "/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "사진 업로드 및 자동 태깅", description = "여행에 사진을 업로드하고 자동으로 인물을 태깅합니다.")
     public ResponseEntity<ApiResponse<List<UploadPhotoResponse>>> uploadPhotos(

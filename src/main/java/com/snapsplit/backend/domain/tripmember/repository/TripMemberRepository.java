@@ -69,5 +69,6 @@ public interface TripMemberRepository extends JpaRepository<TripMember, Long> {
     List<TripMember> findByTripIdWithUser(@Param("tripId") Long tripId);
 
     List<TripMember> findByUser(User user);
+    boolean existsByTrip_IdAndUser_Id(Long tripId, Long userId);
 
 }
