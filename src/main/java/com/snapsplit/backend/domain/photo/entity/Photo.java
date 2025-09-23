@@ -51,4 +51,18 @@ public class Photo {
         this.latitude = latitude;
         this.longitude = longitude;
     }
+
+    public String getObjectKey() {
+        // https://...amazonaws.com/ 뒤 문자열만 추출
+        int idx = s3Url.indexOf(".amazonaws.com/");
+        if (idx == -1) {
+            throw new IllegalStateException("Invalid S3 URL format: " + s3Url);
+        }
+        return s3Url.substring(idx + ".amazonaws.com/".length());
+    }
+
+    public String getFileName() {
+        return s3Url.substring(s3Url.lastIndexOf("/") + 1);
+    }
+
 }
