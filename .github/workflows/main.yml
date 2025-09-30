@@ -57,7 +57,7 @@ jobs:
             
             # 4. 모든 환경 변수를 포함하여 새 컨테이너를 실행합니다.
             sudo docker run -d -p 80:8080 \
-              -e SPRING_DATASOURCE_URL=jdbc:mysql://${{ secrets.DB_HOST }}:3306/snapsplit \
+              -e SPRING_DATASOURCE_URL=jdbc:mysql://${{ secrets.DB_HOST }}:3306/snapsplit_db \
               -e SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USERNAME }} \
               -e SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }} \
               -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
