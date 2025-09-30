@@ -23,4 +23,6 @@ public interface SharedRepository extends JpaRepository<Shared, Long> {
     // 여행과 통화로 Shared 검색
     List<Shared> findByTrip(Trip trip);
 
+    // 통화로 필터링
+    List<Shared> findByTripAndCurrency(Trip trip, String sharedCurrency);
 }

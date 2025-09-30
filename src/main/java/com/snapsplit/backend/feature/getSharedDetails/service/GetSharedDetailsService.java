@@ -42,7 +42,7 @@ public class GetSharedDetailsService {
         String defaultCurrency = trip.getDefaultCurrency();
 
         // 여행과 통화가 일치하는 공동경비 세부내역 검색
-        List<Shared> sharedList = sharedRepository.findByTrip(trip);
+        List<Shared> sharedList = sharedRepository.findByTripAndCurrency(trip, defaultCurrency);
         Map<String, List<SharedItem>> sharedItemMap = sharedList.stream()
                 .collect(Collectors.groupingBy(
                         s -> s.getCreatedAt().toString(), // 여기 s 선언됨
