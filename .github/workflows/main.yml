@@ -45,7 +45,7 @@ jobs:
           host: ${{ secrets.AWS_HOST }}
           username: ${{ secrets.AWS_USERNAME }}
           key: ${{ secrets.AWS_PRIVATE_KEY }}
-          script:
+          script: |
             # --- 이 아래부터는 EC2 서버에서 실행될 명령어들 ---
             # 1. Docker Hub에서 최신 이미지를 내려받음
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/snapsplit:latest
