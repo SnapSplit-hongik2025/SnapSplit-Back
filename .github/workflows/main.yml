@@ -42,38 +42,26 @@ jobs:
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.AWS_HOST }}
-          username: ${{ secrets.AWS_USERNAME }}   # Ubuntu면 ubuntu
+          username: ${{ secrets.AWS_USERNAME }}
           key: ${{ secrets.AWS_PRIVATE_KEY }}
-          port: 22
-          script_stop: true
-          debug: true
           script: |
-            set -euxo pipefail
-
-            # 1) Docker ensure
-            if ! command -v docker >/dev/null 2>&1; then
-              sudo apt-get update && sudo apt-get install -y docker.io
-              sudo systemctl enable --now docker
-            fi
-            sudo docker version
-
-            # 2) (프라이빗 레포일 때만) 로그인
-            echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin || true
-
-            # 3) Pull & run
+            # 1. GCP 인증 키 파일을 EC2 서버에 생성합니다.
+            echo "${{ secrets.GCP_SA_KEY }}" > /home/ubuntu/gcp-key.json
+            
+            # 2. Docker Hub에서 최신 이미지를 받아옵니다.
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/snapsplit:latest
-
+            
+            # 3. 기존에 실행 중이던 컨테이너가 있다면 멈추고 삭제합니다.
             sudo docker stop snapsplit-container || true
             sudo docker rm snapsplit-container || true
-
-            # 포트 점유 확인(디버그용)
-            (sudo lsof -i:80 || true) && (sudo ss -ltnp | grep :80 || true)
-
-            sudo docker run -d \
-              --name snapsplit-container \
-              --restart unless-stopped \
-              -p 80:8080 \
-              ${{ secrets.DOCKER_USERNAME }}/snapsplit:latest
-
-            # (옵션) 이미지 정리
-            sudo docker image prune -f || true
+            
+            # 4. 모든 환경 변수를 포함하여 새 컨테이너를 실행합니다.
+            sudo docker run -d -p 80:8080 \
+              -e SPRING_DATASOURCE_URL=jdbc:mysql://${{ secrets.DB_HOST }}:3306/snapsplit \
+              -e SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USERNAME }} \
+              -e SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }} \
+              -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+              -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+              -e GOOGLE_APPLICATION_CREDENTIALS=/app/config/gcp-key.json \
+              -v /home/ubuntu/gcp-key.json:/app/config/gcp-key.json \
+              --name snapsplit-container ${{ secrets.DOCKER_USERNAME }}/snapsplit:latest
