@@ -3,10 +3,10 @@
 # 워크플로우 이름
 name: Snapsplit CI/CD
 
-# 언제 실행할지 결정 (main 브랜치에 push 될 때)
+# 언제 실행할지 결정 (develop 브랜치에 push 될 때)
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "develop" ]
 
 # 실행할 작업들
 jobs:
