@@ -121,10 +121,17 @@ public class GetSharedDetailsService {
                         .build())
                 .toList();
 
+        // 이용가능 통화 리스트 (중복 제거)
+        List<String> availCurrencies = totalSharedList.stream()
+                .map(TotalShared::getTotalSharedCurrency)
+                .distinct()
+                .toList();
+
         return SharedDetailsResponse.builder()
                 .tripId(tripId)
                 .tripStartDate(tripStartDate)
                 .defaultCurrency(defaultCurrency)
+                .availCurrencies(availCurrencies)
                 .sharedBudgetDetails(dayGroups)
                 .totalSharedBudget(totalSharedBudget)
                 .build();

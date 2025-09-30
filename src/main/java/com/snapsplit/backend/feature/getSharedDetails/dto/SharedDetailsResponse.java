@@ -12,6 +12,7 @@ public class SharedDetailsResponse {
     private Long tripId; // 여행 아이디
     private String tripStartDate; // 여행 시작일
     private String defaultCurrency; // 대표 통화
+    private List<String> availCurrencies; // 이용가능 통화 리스트
     private List<SharedDayGroup> sharedBudgetDetails; // 공동경비 세부내역
     private List<CurrencyAmount> totalSharedBudget; // 이용가능 통화 및 공동경비 잔액
 
