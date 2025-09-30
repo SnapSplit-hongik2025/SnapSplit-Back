@@ -19,8 +19,8 @@ COPY . .
 # 실제 빌드 (테스트 제외)
 RUN ./gradlew clean bootJar -x test
 
-# 2. 실행(run) 단계
-FROM amazoncorretto:17-alpine
+# 2. 실행(run) 단계 (alpine → non-alpine)
+FROM amazoncorretto:17
 WORKDIR /app
 
 # 빌드 단계에서 생성된 jar 파일 복사
