@@ -63,7 +63,6 @@ jobs:
             # 5. yml 파일과 json 파일을 컨테이너에 마운트하여 실행합니다.
             sudo docker run -d -p 80:8080 \
               --name snapsplit-container \
-              -v /home/ubuntu/application.yml:/app/application.yml \
+              -v /home/ubuntu/application.yml:/app/config/application.yml \
               -v /home/ubuntu/gcp-key.json:/app/config/gcp-key.json \
-              --spring.config.import=optional:file:/app/application.yml
               ${{ secrets.DOCKER_USERNAME }}/snapsplit:latest
