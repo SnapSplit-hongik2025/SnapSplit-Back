@@ -48,10 +48,10 @@ jobs:
             set -euxo pipefail
             
             # 1. 배포용 application.yml 파일을 EC2 서버에 생성합니다.
-            echo "${{ secrets.APPLICATION_YML_PROD }}" > /home/ubuntu/application.yml
+            echo "${{ secrets.APPLICATION_YML_PROD }}" | base64 -d > /home/ubuntu/application.yml
 
             # 2. GCP 인증 키 파일도 생성합니다.
-            echo "${{ secrets.GCP_SA_KEY }}" > /home/ubuntu/gcp-key.json
+            echo "${{ secrets.GCP_SA_KEY }}" | base64 -d > /home/ubuntu/gcp-key.json
             
             # 3. Docker Hub에서 최신 이미지를 받아옵니다.
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/snapsplit:latest
