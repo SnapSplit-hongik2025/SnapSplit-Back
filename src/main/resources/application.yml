@@ -64,7 +64,7 @@ gcp:
     project-id: "${GCP_PROJECT_ID}"
     location: "${GCP_LOCATION}"
     processor-id: "${GCP_PROCESSOR_ID}"
-    credentials-path: "file:/app/config/composed-amulet-468906-r3-00461b9d870d.json"
+    credentials-path: "file:/app/config/gcp-key.json"
 
 # Snap 기능 준비 상태 검사 활성화 여부
 # true: 실제 서버처럼 모든 멤버가 얼굴 등록했는지 검사 (보안)
