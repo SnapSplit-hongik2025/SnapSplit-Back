@@ -65,4 +65,5 @@ jobs:
               --name snapsplit-container \
               -v /home/ubuntu/application.yml:/app/application.yml \
               -v /home/ubuntu/gcp-key.json:/app/config/gcp-key.json \
+              --spring.config.import=optional:file:/app/application.yml
               ${{ secrets.DOCKER_USERNAME }}/snapsplit:latest
