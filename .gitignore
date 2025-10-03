@@ -1,4 +1,5 @@
-application.yml
+application-local.yml
+
 # Google Cloud Credentials
 composed-amulet-468906-r3-00461b9d870d.json
 

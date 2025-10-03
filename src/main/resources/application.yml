@@ -1,0 +1,73 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  cloud:
+    aws:
+      credentials:
+        access-key: ${AWS_ACCESS_KEY_ID}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
+      region:
+        static: ap-northeast-2 #서울
+      rekognition:
+        collection-id: snapsplit-faces
+      s3:
+        bucket: snapsplit-assets
+logging:
+  level:
+    org.springframework.security: DEBUG
+
+#kakao login
+kakao:
+  login:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET}
+    redirect-uri: ${KAKAO_REDIRECT_URI}
+
+#jwt
+jwt:
+  secret: ${JWT_SECRET}
+  access:
+    expiration-seconds: 900000 #나중에 다시 줄여야함
+  refresh:
+    expiration-seconds: 604800000
+
+#exchange rate api
+exchange-rate:
+  auth-key: ${EXCHANGE_RATE_AUTH_KEY}
+  timeout: 5000
+
+
+gcp:
+  docai:
+    project-id: "${GCP_PROJECT_ID}"
+    location: "${GCP_LOCATION}"
+    processor-id: "${GCP_PROCESSOR_ID}"
+    credentials-path: "file:/app/config/composed-amulet-468906-r3-00461b9d870d.json"
+
+# Snap 기능 준비 상태 검사 활성화 여부
+# true: 실제 서버처럼 모든 멤버가 얼굴 등록했는지 검사 (보안)
+# false: 개발/테스트 중에는 검사를 건너뛰어 편리하게 테스트 (개발용)
+snap:
+  readiness-check-enabled: false
