@@ -45,6 +45,8 @@ jobs:
           username: ${{ secrets.AWS_USERNAME }}
           key: ${{ secrets.AWS_PRIVATE_KEY }}
           script: |
+            set -euxo pipefail
+            
             # 1. 배포용 application.yml 파일을 EC2 서버에 생성합니다.
             echo "${{ secrets.APPLICATION_YML_PROD }}" > /home/ubuntu/application.yml
 
