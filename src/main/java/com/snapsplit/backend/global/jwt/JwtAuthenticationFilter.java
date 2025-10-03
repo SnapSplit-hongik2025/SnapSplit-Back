@@ -85,7 +85,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         boolean isWhite = path.endsWith("/auth/kakao/login")
                 || path.endsWith("/auth/token/refresh")
                 || path.startsWith("/swagger-ui")
-                || path.startsWith("/v3/api-docs");
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/actuator")
+                || path.startsWith("/health");
 
         System.out.println("[isWhitelisted] Path: " + path + ", Result: " + isWhite);
 
