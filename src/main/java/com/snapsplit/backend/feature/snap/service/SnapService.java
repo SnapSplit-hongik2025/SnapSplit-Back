@@ -22,8 +22,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,8 +32,6 @@ import software.amazon.awssdk.services.rekognition.RekognitionClient;
 import software.amazon.awssdk.services.rekognition.model.*;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -57,6 +54,7 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class SnapService {
 
+    private static final int PAGE_SIZE = 15;
     private final PhotoRepository photoRepository;
     private final PhotoTagRepository photoTagRepository;
     private final UserRepository userRepository;
@@ -429,20 +427,21 @@ public class SnapService {
 
     // 특정 여행의 사진 목록을 페이지네이션으로 조회
     @Transactional(readOnly = true)
-    public PhotoPageResponse getSnapPhotos(Long tripId, Pageable pageable) {
+    public PhotoPageResponse getSnapPhotos(Long tripId, int page, String sortKey) {
         Album album = albumRepository.findByTripId(tripId)
                 .orElseThrow(() -> new EntityNotFoundException("해당 여행의 앨범을 찾을 수 없습니다."));
 
-        Pageable sortedPageable = createSortedPageable(pageable);
+        validatePageAndSort(page, sortKey);
 
-        Page<Photo> photoPage = photoRepository.findByAlbum_Id(album.getId(), sortedPageable);
+        Pageable pageable = buildPageable(page, sortKey); // size=15 고정
+        Slice<Photo> slice = photoRepository.findByAlbum_Id(album.getId(), pageable);
 
-        return buildPhotoPageResponse(photoPage);
+        return buildPhotoPageResponse(slice, page);
     }
 
     // 특정 여행에서 특정 멤버가 태그된 사진 목록을 페이지네이션으로 조회
     @Transactional(readOnly = true)
-    public PhotoPageResponse getSnapPhotosByMember(Long tripId, Long memberId, Pageable pageable) {
+    public PhotoPageResponse getSnapPhotosByMember(Long tripId, Long memberId, int page, String sortKey) {
 
         // 요청한 memberId가 실제로 해당 tripId에 속한 멤버인지 먼저 확인합니다.
         boolean isMember = tripMemberRepository.existsByTrip_IdAndUser_Id(tripId, memberId);
@@ -454,13 +453,14 @@ public class SnapService {
         Album album = albumRepository.findByTripId(tripId)
                 .orElseThrow(() -> new EntityNotFoundException("해당 여행의 앨범을 찾을 수 없습니다."));
 
-        Pageable sortedPageable = createSortedPageable(pageable);
+        validatePageAndSort(page, sortKey);
 
-        // Repository에 새로 추가한 메서드를 호출합니다.
-        Page<Photo> photoPage = photoRepository.findTaggedPhotosByAlbumAndUser(album.getId(), memberId, sortedPageable);
+        Pageable pageable = buildPageable(page, sortKey);
+        Slice<Photo> slice = photoRepository.findTaggedPhotosByAlbumAndUser(album.getId(), memberId, pageable);
 
-        return buildPhotoPageResponse(photoPage);
+        return buildPhotoPageResponse(slice, page);
     }
+
 
     private void verifySnapReadiness(Long tripId) {
         if (readinessCheckEnabled) {
@@ -474,59 +474,59 @@ public class SnapService {
     }
 
 
-    private PhotoPageResponse buildPhotoPageResponse(Page<Photo> photoPage) {
-        List<Photo> photos = photoPage.getContent();
 
-        // N+1 문제 해결을 위한 태그 정보 조회
-        List<Long> photoIds = photos.stream().map(Photo::getId).collect(Collectors.toList());
-        List<PhotoTag> tags = photoTagRepository.findByPhotoIdIn(photoIds);
-        Map<Long, List<PhotoPageResponse.TaggedUserDto>> tagsByPhotoId = tags.stream()
-                .collect(Collectors.groupingBy(
-                        tag -> tag.getPhoto().getId(),
-                        Collectors.mapping(tag -> PhotoPageResponse.TaggedUserDto.builder()
-                                .userId(tag.getUser().getId())
-                                .name(tag.getUser().getName())
-                                .build(), Collectors.toList())
-                ));
+    private void validatePageAndSort(int page, String sortKey) {
+        if (page < 0) throw new IllegalArgumentException("page must be >= 0");
+        if (!"date_desc".equalsIgnoreCase(sortKey) && !"date_asc".equalsIgnoreCase(sortKey)) {
+            throw new IllegalArgumentException("sort must be one of [date_desc, date_asc]");
+        }
+    }
 
-        // 최종 응답 DTO 조립
-        List<PhotoPageResponse.PhotoDetailDto> photoDetailDtos = photos.stream()
-                .map(photo -> PhotoPageResponse.PhotoDetailDto.builder()
-                        .photoId(photo.getId())
-                        .photoUrl(photo.getS3Url())
-                        .photoDate(photo.getPhotoDt() != null ? photo.getPhotoDt().toLocalDate() : null)
-                        .taggedUsers(tagsByPhotoId.getOrDefault(photo.getId(), Collections.emptyList()))
-                        .build())
-                .collect(Collectors.toList());
+    private Pageable buildPageable(int page, String sortKey) {
+        boolean asc = "date_asc".equalsIgnoreCase(sortKey);
+
+        Sort sort = asc
+                ? Sort.by(
+                Sort.Order.asc("photoDt").nullsLast(),
+                Sort.Order.asc("id")
+        )
+                : Sort.by(
+                Sort.Order.desc("photoDt").nullsLast(),
+                Sort.Order.desc("id")
+        );
+
+        return PageRequest.of(page, PAGE_SIZE, sort);
+    }
+
+    private PhotoPageResponse buildPhotoPageResponse(Slice<Photo> slice, int currentPage) {
+        List<PhotoPageResponse.PhotoDetailDto> items = slice.getContent().stream()
+                .map(this::toPhotoDetailDto)
+                .toList();
 
         return PhotoPageResponse.builder()
-                .photos(photoDetailDtos)
-                .currentPage(photoPage.getNumber())
-                .totalPages(photoPage.getTotalPages())
-                .totalElements(photoPage.getTotalElements())
-                .isLast(photoPage.isLast())
+                .photos(items)
+                .currentPage(currentPage)
+                .isLast(slice.isLast())
                 .build();
     }
 
-
-    private Pageable createSortedPageable(Pageable pageable) {
-        Sort originalSort = pageable.getSort();
-        Sort finalSort;
-
-        if (originalSort.isSorted()) {
-            Stream<Sort.Order> translatedOrders = originalSort.stream()
-                    .map(order -> "photoDate".equals(order.getProperty()) ?
-                            new Sort.Order(order.getDirection(), "photoDt") : order);
-            finalSort = Sort.by(translatedOrders.toList());
-        } else {
-            finalSort = Sort.by(
-                    Sort.Order.desc("photoDt").with(Sort.NullHandling.NULLS_LAST),
-                    Sort.Order.desc("id")
-            );
-        }
-        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), finalSort);
+    private PhotoPageResponse.PhotoDetailDto toPhotoDetailDto(Photo p) {
+        return PhotoPageResponse.PhotoDetailDto.builder()
+                .photoId(p.getId())
+                .photoUrl(p.getS3Url())
+                .photoDate(p.getPhotoDt() != null
+                        ? p.getPhotoDt().toLocalDate()
+                        : null)
+                .taggedUsers(
+                        p.getPhotoTags().stream()
+                                .map(PhotoTag::getUser)
+                                .map(u -> PhotoPageResponse.TaggedUserDto.builder()
+                                        .userId(u.getId())
+                                        .name(u.getName())
+                                        .build())
+                                .toList()
+                )
+                .build();
     }
-
-
 
 }

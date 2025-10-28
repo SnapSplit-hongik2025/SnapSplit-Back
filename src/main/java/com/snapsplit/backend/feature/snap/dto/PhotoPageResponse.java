@@ -18,8 +18,6 @@ public class PhotoPageResponse {
     private List<PhotoDetailDto> photos;
     // 페이징 정보
     private int currentPage;
-    private int totalPages;
-    private long totalElements;
     private boolean isLast;
 
     @Getter

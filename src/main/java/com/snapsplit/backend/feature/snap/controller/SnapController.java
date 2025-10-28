@@ -42,9 +42,10 @@ public class SnapController {
     @Operation(summary = "Snap 사진 목록 조회", description = "여행에 업로드된 사진들을 페이지네이션으로 조회합니다.")
     public ResponseEntity<ApiResponse<PhotoPageResponse>> getSnapPhotos(
             @PathVariable Long tripId,
-            @PageableDefault(size = 20) Pageable pageable
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "date_desc") String sort // date_desc | date_asc
     ) {
-        PhotoPageResponse response = snapService.getSnapPhotos(tripId, pageable);
+        PhotoPageResponse response = snapService.getSnapPhotos(tripId, page, sort);
         return ResponseEntity.ok(ApiResponse.success("사진 목록 조회 성공", response));
     }
 
@@ -54,9 +55,10 @@ public class SnapController {
     public ResponseEntity<ApiResponse<PhotoPageResponse>> getSnapPhotosByMember(
             @PathVariable Long tripId,
             @PathVariable Long memberId,
-            @PageableDefault(size = 20) Pageable pageable
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "date_desc") String sort // date_desc | date_asc
     ) {
-        PhotoPageResponse response = snapService.getSnapPhotosByMember(tripId, memberId, pageable);
+        PhotoPageResponse response = snapService.getSnapPhotosByMember(tripId, memberId, page, sort);
         return ResponseEntity.ok(ApiResponse.success("인물별 사진 목록 조회 성공", response));
     }
 
