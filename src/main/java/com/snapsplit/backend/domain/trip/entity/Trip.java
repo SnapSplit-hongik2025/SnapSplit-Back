@@ -1,5 +1,6 @@
 package com.snapsplit.backend.domain.trip.entity;
 
+import com.snapsplit.backend.domain.album.entity.Album;
 import com.snapsplit.backend.domain.shared.entity.Shared;
 import com.snapsplit.backend.domain.totalshared.entity.TotalShared;
 import com.snapsplit.backend.domain.tripcountry.entity.TripCountry;
@@ -68,4 +69,11 @@ public class Trip {
     // 여행이 삭제되면 Shared도 삭제되도록
     @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Shared> sharedList = new ArrayList<>();
+
+    // 여행 - 앨범 1 : 1 관계
+    @OneToOne(mappedBy = "trip",
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY)
+    private Album album;
 }

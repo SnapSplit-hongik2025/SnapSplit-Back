@@ -22,12 +22,9 @@ public class Album {
     @Column(name = "album_id")
     private Long id;
 
-    //@Column(name = "name", length = 100, nullable = false)
-    //private String name;
-
     // Album은 하나의 Trip에 속합니다. (1:1 관계)
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "trip_id", nullable = false)
+    @JoinColumn(name = "trip_id", nullable = false, unique = true)
     private Trip trip;
 
     // Album은 여러 개의 Photo를 가질 수 있습니다. (1:N 관계)
