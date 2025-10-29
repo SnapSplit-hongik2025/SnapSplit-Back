@@ -37,6 +37,7 @@ public class CategoryExpenseService {
 
         List<CategoryExpenseDto> categoryExpenseDtos = Arrays.stream(Expense.Category.values())
                 .map(cat -> new CategoryExpenseDto(cat, amountMap.getOrDefault(cat, BigDecimal.ZERO)))
+                .sorted((a, b) -> b.amountKRW().compareTo(a.amountKRW()))
                 .toList();
 
         BigDecimal total = categoryExpenseDtos.stream()
