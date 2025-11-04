@@ -11,20 +11,20 @@ RUN chmod +x gradlew
 COPY build.gradle settings.gradle* ./
 
 # 의존성 미리 다운로드
-RUN ./gradlew dependencies || true
+RUN ./gradlew dependencies --no-daemon|| true
 
 # 소스 복사
 COPY . .
 
 # 실제 빌드 (테스트 제외)
-RUN ./gradlew clean bootJar -x test
+RUN ./gradlew clean bootJar -x test --no-daemon
 
 # 2. 실행(run) 단계 (alpine → non-alpine)
 FROM amazoncorretto:17
 WORKDIR /app
 
 # 빌드 단계에서 생성된 jar 파일 복사
-COPY --from=builder /workspace/app/build/libs/*.jar app.jar
+COPY --from=builder /workspace/app/build/libs/app.jar app.jar
 
 EXPOSE 8080
-ENTRYPOINT ["java","-jar","-Dspring.config.location=file:/app/config/application.yml","/app/app.jar"]
+ENTRYPOINT ["java","-Dspring.config.location=file:/app/config/application.yml","-jar","/app/app.jar"]
