@@ -20,7 +20,7 @@ spring:
     database-platform: org.hibernate.dialect.MySQL8Dialect
   data:
     redis:
-      host: localhost
+      host: ${SPRING_DATA_REDIS_HOST}
       port: 6379
 
   cloud:
