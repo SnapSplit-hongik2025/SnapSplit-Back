@@ -65,4 +65,6 @@ jobs:
               --name snapsplit-container \
               -v /home/ubuntu/application.yml:/app/config/application.yml \
               -v /home/ubuntu/gcp-key.json:/app/config/gcp-key.json \
+              -e SPRING_DATA_REDIS_HOST=${{ secrets.SPRING_DATA_REDIS_HOST }} \
+              -e SPRING_DATA_REDIS_PORT=6379 \
               ${{ secrets.DOCKER_USERNAME }}/snapsplit:latest
