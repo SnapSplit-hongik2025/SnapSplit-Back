@@ -7,6 +7,8 @@ import com.snapsplit.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "개별 지출", description = "지출 추가/수정/삭제/조회")
@@ -24,8 +26,11 @@ public class TripHomeController {
     )
     @GetMapping("/{tripId}/expenses")
     @CheckTripMember
-    public ApiResponse<TripHomeResponse> getTripHome(@PathVariable Long tripId) {
+    public ResponseEntity<ApiResponse<TripHomeResponse>> getTripHome(@PathVariable Long tripId) {
         TripHomeResponse response = tripHomeService.getTripHome(tripId);
-        return ApiResponse.success("여행 상세 조회 성공", response);
+        return ResponseEntity
+                .ok()
+                .cacheControl(CacheControl.noStore())  // 캐시 금지 헤더 추가
+                .body(ApiResponse.success("여행 상세 조회 성공", response));
     }
 }

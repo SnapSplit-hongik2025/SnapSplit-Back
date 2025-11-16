@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,10 +24,15 @@ public class PastTripsController {
 
     @Operation(summary = "과거 여행 목록 조회", description = "사용자가 참여한 과거 여행 목록을 조회합니다.")
     @GetMapping("/past")
-    public ApiResponse<PastTripsResponse> getPastTrips(
+
+    public ResponseEntity<ApiResponse<PastTripsResponse>> getPastTrips(
             @AuthenticationPrincipal CustomUserPrincipal user) {
         PastTripsResponse response = pastTripsService.getPastTripsWithStats(user.getId());
-        return ApiResponse.success("지난 여행 조회 성공", response);
+
+        return ResponseEntity
+                .ok()
+                .cacheControl(CacheControl.noStore())   // 캐시 금지
+                .body(ApiResponse.success("지난 여행 조회 성공", response));
     }
 
 }
