@@ -1,13 +1,20 @@
 package com.snapsplit.backend.feature.editTrip.service;
+import com.snapsplit.backend.domain.album.repository.AlbumRepository;
 import com.snapsplit.backend.domain.country.entity.Country;
 import com.snapsplit.backend.domain.country.repository.CountryRepository;
+import com.snapsplit.backend.domain.photo.entity.Photo;
+import com.snapsplit.backend.domain.photo.repository.PhotoRepository;
 import com.snapsplit.backend.domain.trip.entity.Trip;
 import com.snapsplit.backend.domain.trip.repository.TripRepository;
 import com.snapsplit.backend.domain.tripcountry.entity.TripCountry;
+import com.snapsplit.backend.domain.expense.repository.ExpenseRepository;
+import com.snapsplit.backend.feature.addExpense.service.AddExpenseService;
 import com.snapsplit.backend.feature.editTrip.dto.*;
 import com.snapsplit.backend.global.s3.S3Uploader;
 import com.snapsplit.backend.global.s3.dto.S3UploadResult;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EditTripService {
@@ -24,6 +32,12 @@ public class EditTripService {
     private final TripRepository tripRepository;
     private final CountryRepository countryRepository;
     private final S3Uploader s3Uploader;
+    private final PhotoRepository photoRepository;
+    private final AlbumRepository albumRepository;
+    private final ExpenseRepository expenseRepository;
+    private final AddExpenseService addExpenseService;
+    private final RedisTemplate<String, String> redisTemplate;
+
 
     // 수정 전 여행지 불러오기
     @Transactional(readOnly = true)
@@ -139,6 +153,36 @@ public class EditTripService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "해당 여행이 존재하지 않습니다."));
 
+        // 1. Album, Photo, S3 파일 삭제
+        albumRepository.findByTripId(tripId).ifPresent(album -> {
+            List<Photo> photos = photoRepository.findByAlbum_Id(album.getId());
+
+            for (Photo photo : photos) {
+                try {
+                    // S3 파일 삭제
+                    s3Uploader.deleteByUrl(photo.getS3Url());
+                } catch (Exception e) {
+                    log.warn("S3 파일 삭제 실패: {}", photo.getS3Url(), e);
+                }
+
+                // Photo 엔티티 삭제
+                photoRepository.delete(photo);
+            }
+            // Album 엔티티 삭제 (cascade가 걸려 있어도 명시적으로 삭제)
+            albumRepository.delete(album);
+        });
+
+
+        // 2. Expense 전체 삭제
+        expenseRepository.findAllByTripId(tripId)
+                .forEach(expense -> addExpenseService.deleteExpense(tripId, expense.getId()));
+
+        // 3. TripCountry, TripMember, Shared, TotalShared -> cascade로 자동 삭제
+
+        // 4. Redis 캐시 삭제
+        redisTemplate.delete("trip::" + tripId + "::snapReadiness");
+
+        // 5. Trip 삭제
         tripRepository.delete(trip);
     }
 }

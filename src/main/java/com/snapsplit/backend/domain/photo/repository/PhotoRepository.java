@@ -15,6 +15,8 @@ public interface PhotoRepository extends JpaRepository<Photo, Long> {
     List<Photo> findAllByIdInAndAlbum_Trip_Id(List<Long> ids, Long tripId);
     Optional<Photo> findByIdAndAlbum_Trip_Id(Long id, Long tripId);
     Slice<Photo> findByAlbum_Id(Long albumId, Pageable pageable);
+    List<Photo> findByAlbum_Id(Long albumId);
+
 
     // 태그된 사진 조회: @Query 사용 + @Param 이름 일치
     @Query("""
