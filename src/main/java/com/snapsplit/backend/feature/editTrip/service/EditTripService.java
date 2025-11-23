@@ -72,7 +72,7 @@ public class EditTripService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "해당 여행이 존재하지 않습니다."));
 
-        // 기존 여행지 목록 초기화 (orphanRemoval = true 덕분에 자동 삭제)
+        // 기존 여행지 목록 초기화 (orphanRemoval = true 자동 삭제)
         trip.getTripCountries().clear();
 
         // 새로운 국가 목록 설정
@@ -89,6 +89,9 @@ public class EditTripService {
                 .toList();
 
         trip.getTripCountries().addAll(newTripCountries);
+
+        // 여행 국가가 변경되면 대표 통화를 다시 KRW로 초기화
+        trip.setDefaultCurrency("KRW");
     }
 
     // 수정 전 여행 일정 불러오기

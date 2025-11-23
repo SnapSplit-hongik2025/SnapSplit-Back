@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 
@@ -24,13 +25,19 @@ public class AddExpensePageController {
             description = "지출 추가를 위한 초기 데이터를 불러옵니다. 해당 여행(tripId)과 날짜(date)에 따라 통화, 환율, 멤버 정보 등을 포함합니다."
     )
     @GetMapping("/new")
-    public ApiResponse<AddExpensePageResponse> getAddExpensePageData(
+    public ResponseEntity<ApiResponse<AddExpensePageResponse>> getAddExpensePageData(
             @PathVariable Long tripId,
             @RequestParam(name = "date")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ){
 
         AddExpensePageResponse response = addExpensePageService.getAddExpensePageData(tripId, date);
-        return ApiResponse.success("지출 추가용 초기 데이터를 불러왔습니다.", response);
+
+        return ResponseEntity.ok()
+                .header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+                .header("Pragma", "no-cache")
+                .header("Expires", "0")
+                .body(ApiResponse.success("지출 추가용 초기 데이터를 불러왔습니다.", response));
+
     }
 }
