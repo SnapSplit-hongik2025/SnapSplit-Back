@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -55,6 +56,20 @@ public class AddExpenseService {
         // Trip 객체 조회 (공동경비 조회 및 Shared 저장용으로 사용)
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 여행이 존재하지 않습니다."));
+
+        // 날짜 검증: 여행 시작일 - 1 ~ 여행 종료일 이외는 허용하지 않음
+        LocalDate expenseDate = info.date();
+        LocalDate start = trip.getStartDate();
+        LocalDate end = trip.getEndDate();
+        LocalDate allowedMin = start.minusDays(1);
+
+        if (expenseDate.isBefore(allowedMin)) {
+            throw new IllegalArgumentException("지출 날짜는 여행 시작일 하루 전보다 이전일 수 없습니다.");
+        }
+        if (expenseDate.isAfter(end)) {
+            throw new IllegalArgumentException("지출 날짜는 여행 종료일 이후일 수 없습니다.");
+        }
+
 
         // 모든 payer의 TripMember를 한 번에 조회
         List<Long> payerMemberIds = request.payers().stream()

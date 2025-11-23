@@ -95,15 +95,17 @@ public class TripHomeService {
                         tm -> tm.getUser().getName()
                 ));
 
+        // 전체 기간 날짜 구간 생성
+        LocalDate startDate = trip.getStartDate();
+        LocalDate dayBeforeStart = startDate.minusDays(1);
+
+        List<LocalDate> allDates = dayBeforeStart
+                .datesUntil(trip.getEndDate().plusDays(1))
+                .toList();
 
         // 날짜별 지출 그룹핑
         Map<LocalDate, List<Expense>> expensesByDate = expenses.stream()
                 .collect(Collectors.groupingBy(Expense::getExpenseDate));
-
-        // 전체 기간 날짜 구간 생성
-        List<LocalDate> allDates = trip.getStartDate()
-                .datesUntil(trip.getEndDate().plusDays(1))
-                .toList();
 
         // expense ID별로 splits를 그룹화 (미리 처리)
         Map<Long, List<Split>> splitsByExpenseId = allSplits.stream()
