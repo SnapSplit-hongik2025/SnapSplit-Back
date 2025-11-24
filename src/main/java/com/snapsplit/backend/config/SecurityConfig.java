@@ -57,9 +57,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:3000",
-                "http://433.203.219.30",
                 "https://snap-split-front-ebon.vercel.app",
-                "https://localhost:3001"));
+                "http://localhost:3001",
+                "http://43.203.219.30"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
