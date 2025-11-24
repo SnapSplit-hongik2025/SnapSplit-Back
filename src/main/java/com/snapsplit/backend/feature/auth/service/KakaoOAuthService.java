@@ -5,6 +5,7 @@ import com.snapsplit.backend.feature.auth.dto.KakaoUserResponse;
 import com.snapsplit.backend.domain.user.entity.User;
 import com.snapsplit.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -13,7 +14,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Random;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class KakaoOAuthService {
@@ -31,6 +32,9 @@ public class KakaoOAuthService {
     private String redirectUri;
 
     public KakaoTokenResponse getToken(String code) {
+
+        log.info("🔍 redirectUri = {}", redirectUri);
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
