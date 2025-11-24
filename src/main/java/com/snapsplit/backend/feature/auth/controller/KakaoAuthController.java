@@ -155,7 +155,7 @@ public class KakaoAuthController {
                 .secure(true)       // HTTPS 환경에서만 전송
                 .path("/")          // 쿠키가 전송될 경로
                 .maxAge(maxAgeInSeconds) // 쿠키 유효 기간
-                .sameSite("Strict") // CSRF 공격 방지
+                .sameSite("None")
                 .build();
     }
 
