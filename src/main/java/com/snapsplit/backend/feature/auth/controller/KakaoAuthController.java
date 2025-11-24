@@ -151,6 +151,7 @@ public class KakaoAuthController {
 
     private ResponseCookie createCookie(String name, String value, long maxAgeInSeconds) {
         return ResponseCookie.from(name, value)
+                .domain("snap-split.co.kr")
                 .httpOnly(true)
                 .secure(true)       // HTTPS 환경에서만 전송
                 .path("/")          // 쿠키가 전송될 경로
