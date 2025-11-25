@@ -91,6 +91,10 @@ public class SnapService {
     // 여행 사진 업로드 및 자동 태깅
     @Transactional
     public List<UploadPhotoResponse> uploadAndTagPhotos(Long tripId, List<MultipartFile> images) {
+
+        log.info("[SERVICE] uploadAndTagPhotos 진입 tripId={}, images={}",
+                tripId, images != null ? images.size() : null);
+
         Album album = albumRepository.findByTripId(tripId)
                 .orElseThrow(() -> new EntityNotFoundException("해당 여행의 앨범을 찾을 수 없습니다."));
 
@@ -99,9 +103,12 @@ public class SnapService {
         //log.info("Attempting to find max {} faces for tripId {}.", maxFacesToDetect, tripId);
 
         return images.stream()
+                .peek(img -> log.info("[SERVICE] processSingleImage 호출 시도 filename={}, size={}",
+                        img.getOriginalFilename(), img.getSize()))
                 .map(image -> processSingleImage(album, image, maxFacesToDetect))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+
     }
 
 

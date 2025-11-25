@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/trips/{tripId}/snap")
 @RequiredArgsConstructor
+@Slf4j
 public class SnapController {
 
     private final SnapService snapService;
@@ -69,6 +71,11 @@ public class SnapController {
             @PathVariable Long tripId,
             @RequestParam("images") List<MultipartFile> images
     ) {
+        log.info("[CONTROLLER] 요청 도착 tripId={}, 파일개수={}", tripId, images.size());
+        images.forEach(f ->
+                log.info("[CONTROLLER] 파일명={}, size={} bytes, contentType={}",
+                        f.getOriginalFilename(), f.getSize(), f.getContentType())
+        );
         List<UploadPhotoResponse> responseData = snapService.uploadAndTagPhotos(tripId, images);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("사진 업로드 및 태깅에 성공했습니다.", responseData));
