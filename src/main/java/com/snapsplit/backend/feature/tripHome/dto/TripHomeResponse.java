@@ -35,7 +35,8 @@ public record TripHomeResponse(
     @Builder
     public record DailyExpenseDto(
             LocalDate date,
-            List<ExpenseDto> expenses
+            List<ExpenseDto> expenses,
+            boolean canAddExpense
     ) {}
 
     @Builder

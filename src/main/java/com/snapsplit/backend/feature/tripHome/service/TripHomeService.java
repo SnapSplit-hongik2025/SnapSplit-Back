@@ -6,6 +6,8 @@ import com.snapsplit.backend.domain.expense.entity.Split;
 import com.snapsplit.backend.domain.expense.repository.CategoryExpenseRepository;
 import com.snapsplit.backend.domain.expense.repository.ExpenseRepository;
 import com.snapsplit.backend.domain.expense.repository.SplitRepository;
+import com.snapsplit.backend.domain.settlement.entity.Settlement;
+import com.snapsplit.backend.domain.settlement.repository.SettlementRepository;
 import com.snapsplit.backend.domain.totalshared.entity.TotalShared;
 import com.snapsplit.backend.domain.totalshared.repository.TotalSharedRepository;
 import com.snapsplit.backend.domain.trip.entity.Trip;
@@ -34,7 +36,7 @@ public class TripHomeService {
     private final ExpenseRepository expenseRepository;
     private final SplitRepository splitRepository;
     private final TripMemberRepository tripMemberRepository;
-
+    private final SettlementRepository settlementRepository;
 
     @Transactional(readOnly=true)
     public TripHomeResponse getTripHome(Long tripId) {
@@ -111,6 +113,17 @@ public class TripHomeService {
         Map<Long, List<Split>> splitsByExpenseId = allSplits.stream()
                 .collect(Collectors.groupingBy(Split::getExpenseId));
 
+        // 전체 정산내역
+        List<Settlement> settlements = settlementRepository.findAllByTripId(tripId);
+        Map<LocalDate, Boolean> isSettledMap = new HashMap<>();
+
+        for (LocalDate date : allDates) {
+            boolean settled = settlements.stream().anyMatch(s ->
+                    !date.isBefore(s.getStartDate()) && !date.isAfter(s.getEndDate())
+            );
+            isSettledMap.put(date, settled);
+        }
+
         // 날짜별 지출 리스트 생성 (지출 없는 날짜도 포함)
         List<DailyExpenseDto> dailyExpenses = allDates.stream()
                 .map(date -> {
@@ -139,6 +152,7 @@ public class TripHomeService {
                     return DailyExpenseDto.builder()
                             .date(date)
                             .expenses(expenseDtos)
+                            .canAddExpense(!isSettledMap.get(date))
                             .build();
                 })
                 .toList();
