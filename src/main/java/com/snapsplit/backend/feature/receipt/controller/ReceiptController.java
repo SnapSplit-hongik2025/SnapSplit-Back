@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @Tag(name = "영수증 OCR", description = "Document AI Expense Parser를 이용한 영수증 파싱")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/receipts")
+@RequestMapping("/trips/{tripId}/receipts")
 public class ReceiptController {
 
     private final ReceiptService receiptService;
