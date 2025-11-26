@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.InputStream;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -73,9 +74,15 @@ public class DownloadService {
                     throw new ForbiddenException("권한 없는 사진 요청으로 응답이 거부되었습니다.");
                 }
 
+                // objectKey 디코딩 (중요)
+                String rawKey = photo.getObjectKey();
+                String decodedKey = URLDecoder.decode(rawKey, StandardCharsets.UTF_8);
+
+                log.info("🔑 [DOWNLOAD] S3 Key 디코딩 raw={}, decoded={}", rawKey, decodedKey);
+
                 GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                         .bucket(awsProperties.getS3().getBucket())
-                        .key(photo.getObjectKey())
+                        .key(decodedKey)
                         .build();
 
                 log.info("🧲 [DOWNLOAD] S3 요청 시작 bucket={}, key={}",
