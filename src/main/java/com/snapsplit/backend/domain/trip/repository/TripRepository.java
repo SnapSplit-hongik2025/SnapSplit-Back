@@ -14,4 +14,7 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
     @Modifying
     @Query("UPDATE Trip t SET t.defaultCurrency = :defaultCurrency WHERE t.id = :tripId")
     void updateDefaultCurrencyById(@Param("tripId") Long tripId, @Param("defaultCurrency") String defaultCurrency);
+
+    @Query("SELECT t FROM Trip t LEFT JOIN FETCH t.album WHERE t.id = :id")
+    Optional<Trip> findTripWithAlbum(@Param("id") Long id);
 }

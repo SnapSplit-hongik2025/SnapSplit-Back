@@ -152,27 +152,20 @@ public class EditTripService {
     // 여행 삭제하기
     @Transactional
     public void deleteTrip(Long tripId) {
-        Trip trip = tripRepository.findById(tripId)
+        Trip trip = tripRepository.findTripWithAlbum(tripId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "해당 여행이 존재하지 않습니다."));
 
-        // 1. Album, Photo, S3 파일 삭제
+        // 1. S3 사진 삭제만
         albumRepository.findByTripId(tripId).ifPresent(album -> {
             List<Photo> photos = photoRepository.findByAlbum_Id(album.getId());
-
             for (Photo photo : photos) {
                 try {
-                    // S3 파일 삭제
                     s3Uploader.deleteByUrl(photo.getS3Url());
                 } catch (Exception e) {
-                    log.warn("S3 파일 삭제 실패: {}", photo.getS3Url(), e);
+                    log.warn("S3 삭제 실패: {}", photo.getS3Url(), e);
                 }
-
-                // Photo 엔티티 삭제
-                photoRepository.delete(photo);
             }
-            // Album 엔티티 삭제 (cascade가 걸려 있어도 명시적으로 삭제)
-            albumRepository.delete(album);
         });
 
 
