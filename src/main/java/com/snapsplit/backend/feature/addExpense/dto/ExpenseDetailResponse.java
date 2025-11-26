@@ -15,6 +15,7 @@ public record ExpenseDetailResponse(
         String currency,
         String paymentMethod,
         LocalDate date,
+        boolean canAddExpense,
         String expenseName,
         String expenseMemo,
         String category,

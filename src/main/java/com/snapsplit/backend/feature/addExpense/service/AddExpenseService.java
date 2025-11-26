@@ -18,6 +18,8 @@ import com.snapsplit.backend.feature.addExpense.dto.AddExpenseRequest;
 import com.snapsplit.backend.feature.addExpense.dto.ExpenseDetailResponse;
 import com.snapsplit.backend.domain.shared.entity.SharedType;
 import com.snapsplit.backend.feature.getCategoryExpense.service.CategoryExpenseService;
+import com.snapsplit.backend.domain.settlement.entity.Settlement;
+import com.snapsplit.backend.domain.settlement.repository.SettlementRepository;
 import com.snapsplit.backend.feature.receipt.service.ReceiptService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +46,7 @@ public class AddExpenseService {
     private final TripRepository tripRepository;
     private final CategoryExpenseService categoryExpenseService;
     private final ReceiptRepository receiptRepository;
+    private final SettlementRepository settlementRepository;
 
 
     //지출 추가
@@ -228,6 +231,17 @@ public class AddExpenseService {
             throw new IllegalArgumentException("해당 여행의 지출이 아닙니다.");
         }
 
+        // 정산 완료 여부 확인
+        LocalDate expenseDate = expense.getExpenseDate();
+        List<Settlement> settlements = settlementRepository.findAllByTripId(tripId);
+        boolean isSettled = settlements.stream()
+                .anyMatch(s ->
+                        !expenseDate.isBefore(s.getStartDate()) &&
+                                !expenseDate.isAfter(s.getEndDate())
+                );
+
+        boolean canAddExpense = !isSettled;
+
         List<ExpenseDetailResponse.MemberAmountDto> payers = payRepository.findByExpenseId(expenseId)
                 .stream()
                 .map(pay -> {
@@ -281,6 +295,7 @@ public class AddExpenseService {
                 .currency(expense.getExpenseCurrency())
                 .paymentMethod(expense.getPaymentMethod().toString())
                 .date(expense.getExpenseDate())
+                .canAddExpense(canAddExpense)
                 .expenseName(expense.getExpenseName())
                 .expenseMemo(expense.getExpenseMemo())
                 .category(expense.getCategory().toString())
