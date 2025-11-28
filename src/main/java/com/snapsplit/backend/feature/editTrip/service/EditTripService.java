@@ -12,6 +12,8 @@ import com.snapsplit.backend.feature.addExpense.service.AddExpenseService;
 import com.snapsplit.backend.feature.editTrip.dto.*;
 import com.snapsplit.backend.global.s3.S3Uploader;
 import com.snapsplit.backend.global.s3.dto.S3UploadResult;
+import com.snapsplit.backend.domain.settlement.repository.SettlementDetailRepository;
+import com.snapsplit.backend.domain.settlement.repository.SettlementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -37,6 +39,8 @@ public class EditTripService {
     private final ExpenseRepository expenseRepository;
     private final AddExpenseService addExpenseService;
     private final RedisTemplate<String, String> redisTemplate;
+    private final SettlementDetailRepository settlementDetailRepository;
+    private final SettlementRepository settlementRepository;
 
 
     // 수정 전 여행지 불러오기
@@ -173,7 +177,13 @@ public class EditTripService {
         expenseRepository.findAllByTripId(tripId)
                 .forEach(expense -> addExpenseService.deleteExpense(tripId, expense.getId()));
 
-        // 3. TripCountry, TripMember, Shared, TotalShared -> cascade로 자동 삭제
+        //TripCountry, TripMember, Shared, TotalShared -> cascade로 자동 삭제
+        // 3-1) SettlementDetail 삭제
+        settlementDetailRepository.deleteByTripId(tripId);
+
+        // 3-2) Settlement 삭제
+        settlementRepository.deleteByTripId(tripId);
+
 
         // 4. Redis 캐시 삭제
         redisTemplate.delete("trip::" + tripId + "::snapReadiness");

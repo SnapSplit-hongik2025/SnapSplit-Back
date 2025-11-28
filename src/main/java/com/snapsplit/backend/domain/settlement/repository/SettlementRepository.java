@@ -2,6 +2,7 @@ package com.snapsplit.backend.domain.settlement.repository;
 
 import com.snapsplit.backend.domain.settlement.entity.Settlement;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -29,5 +30,9 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
+
+    @Modifying
+    @Query("DELETE FROM Settlement s WHERE s.trip.id = :tripId")
+    void deleteByTripId(@Param("tripId") Long tripId);
 
 }
